@@ -1,13 +1,23 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CBT4Cert - 자격증 CBT 연습</title>
-  <meta name="description" content="자격증 시험을 위한 CBT 연습 사이트" />
-  <script type="module" crossorigin src="/cbt4cert/assets/index-CqrRhOIF.js"></script>
-  <link rel="stylesheet" crossorigin href="/cbt4cert/assets/index-CE8bmezB.css">
-</head>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CBT4Cert</title>
+    <script>
+      // GitHub Pages SPA 리다이렉트 처리
+      (function() {
+        var redirect = sessionStorage.redirect;
+        delete sessionStorage.redirect;
+        if (redirect && redirect !== location.href) {
+          history.replaceState(null, null, redirect);
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/cbt4cert/assets/index-CqrRhOIF.js"></script>
+    <link rel="stylesheet" crossorigin href="/cbt4cert/assets/index-CE8bmezB.css">
+  </head>
 <body>
   <div id="app"></div>
 </body>
