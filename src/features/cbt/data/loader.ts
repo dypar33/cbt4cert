@@ -5,7 +5,7 @@ import type { Catalog, Question } from './types.ts'
  */
 export async function loadCatalog(): Promise<Catalog> {
   try {
-    const response = await fetch('./data/index.json')
+    const response = await fetch('/cbt4cert/data/index.json')
     if (!response.ok) {
       throw new Error(`카탈로그 로드 실패: ${response.status}`)
     }
@@ -26,7 +26,7 @@ export async function loadQuestionBank(
   subject: string
 ): Promise<Question[]> {
   try {
-    const path = `./data/${encodeURIComponent(certification)}/${encodeURIComponent(subject)}/questions.json`
+    const path = `/cbt4cert/data/${encodeURIComponent(certification)}/${encodeURIComponent(subject)}/questions.json`
     const response = await fetch(path)
     if (!response.ok) {
       throw new Error(`문제 은행 로드 실패: ${response.status}`)
