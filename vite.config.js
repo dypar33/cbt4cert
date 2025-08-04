@@ -11,7 +11,11 @@ export default defineConfig({
     minify: 'esbuild',
     rollupOptions: {
       output: {
-        manualChunks: undefined
+        manualChunks: undefined,
+        // 파일명에서 해시 제거하여 고정된 파일명 사용
+        entryFileNames: 'assets/index.js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]'
       }
     }
   },

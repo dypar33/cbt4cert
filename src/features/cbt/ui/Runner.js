@@ -2,6 +2,29 @@ import { submitAnswer } from '../engine/quiz-engine.js'
 import { loadStorage, saveStorage } from '../../../utils/storage.js'
 import { images } from '../../../assets/images.js'
 
+/**
+ * 텍스트를 안전하게 HTML로 변환하는 함수
+ */
+function escapeHtml(text) {
+  if (!text) return ''
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
+}
+
+/**
+ * 텍스트 포맷팅 함수 - 줄바꿈과 공백을 올바르게 처리
+ */
+function formatText(text) {
+  if (!text) return ''
+  
+  // HTML 이스케이프 후 줄바꿈 처리
+  return escapeHtml(text)
+    .replace(/\n/g, '<br>')
+    .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+    .replace(/  /g, '&nbsp;&nbsp;') // 연속된 공백 처리
+}
+
 export class Runner {
   constructor(container) {
     this.container = container
@@ -104,7 +127,7 @@ export class Runner {
             margin-bottom: var(--space-6);
             line-height: 1.6;
           ">
-            ${currentQuestion.question}
+            ${formatText(currentQuestion.question)}
           </div>
 
           <!-- 답안 입력 영역 -->
@@ -129,7 +152,7 @@ export class Runner {
                 ${isCorrect ? '✅ 정답입니다!' : '❌ 틀렸습니다.'}
               </div>
               <div style="opacity: 0.9; font-size: var(--font-size-sm);">
-                정답: ${currentQuestion.answer.join(', ')}
+                정답: ${currentQuestion.answer.map(ans => formatText(ans)).join(', ')}
               </div>
               ${currentQuestion.explanation ? `
                 <div style="
@@ -139,7 +162,7 @@ export class Runner {
                   padding-top: var(--space-2);
                   border-top: 1px solid rgba(255,255,255,0.2);
                 ">
-                  ${currentQuestion.explanation}
+                  ${formatText(currentQuestion.explanation)}
                 </div>
               ` : ''}
             </div>
@@ -252,7 +275,7 @@ export class Runner {
                   "
                 />
                 <span style="flex: 1; font-size: var(--font-size-base);">
-                  ${choice}
+                  ${formatText(choice)}
                 </span>
               </label>
             `
