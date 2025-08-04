@@ -3,7 +3,7 @@ import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 
 export default defineConfig({
-  base: './',
+  base: process.env.NODE_ENV === 'production' ? '/cbt4cert/' : './',
   build: {
     outDir: 'docs',
     assetsDir: 'assets',
