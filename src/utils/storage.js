@@ -1,18 +1,16 @@
-import type { AppStorage, AppPreferences } from '../features/cbt/data/types.ts'
-
 const STORAGE_KEY = 'cbt4cert'
 
 /**
  * 기본 설정값
  */
-const defaultPreferences: AppPreferences = {
+const defaultPreferences = {
   darkMode: false
 }
 
 /**
  * localStorage에서 앱 데이터 로드
  */
-export function loadStorage(): AppStorage {
+export function loadStorage() {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (!stored) {
@@ -33,7 +31,7 @@ export function loadStorage(): AppStorage {
 /**
  * localStorage에 앱 데이터 저장
  */
-export function saveStorage(storage: AppStorage): void {
+export function saveStorage(storage) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(storage))
   } catch (error) {
@@ -44,7 +42,7 @@ export function saveStorage(storage: AppStorage): void {
 /**
  * 설정만 업데이트
  */
-export function updatePreferences(updates: Partial<AppPreferences>): void {
+export function updatePreferences(updates) {
   const storage = loadStorage()
   storage.preferences = { ...storage.preferences, ...updates }
   saveStorage(storage)
@@ -53,7 +51,7 @@ export function updatePreferences(updates: Partial<AppPreferences>): void {
 /**
  * 다크 모드 토글
  */
-export function toggleDarkMode(): boolean {
+export function toggleDarkMode() {
   const storage = loadStorage()
   const newDarkMode = !storage.preferences.darkMode
   
@@ -68,7 +66,7 @@ export function toggleDarkMode(): boolean {
 /**
  * 저장된 테마 적용
  */
-export function applySavedTheme(): void {
+export function applySavedTheme() {
   const storage = loadStorage()
   document.documentElement.setAttribute(
     'data-theme', 

@@ -1,11 +1,13 @@
-import type { Catalog, Question } from './types.ts'
-
 /**
  * 카탈로그 로드 - /data/index.json에서 자격증 목록을 가져옴
  */
-export async function loadCatalog(): Promise<Catalog> {
+export async function loadCatalog() {
   try {
-    const response = await fetch('/cbt4cert/data/index.json')
+    // 개발 환경과 배포 환경 모두 지원하는 경로
+    // GitHub Pages에서는 /cbt4cert/ 경로 사용, 로컬에서는 루트 경로 사용
+    const isGitHubPages = window.location.hostname === 'dypar33.github.io'
+    const basePath = isGitHubPages ? '/cbt4cert' : ''
+    const response = await fetch(`${basePath}/data/index.json`)
     if (!response.ok) {
       throw new Error(`카탈로그 로드 실패: ${response.status}`)
     }
@@ -21,12 +23,12 @@ export async function loadCatalog(): Promise<Catalog> {
 /**
  * 문제 은행 로드 - 특정 자격증/과목의 문제들을 가져옴
  */
-export async function loadQuestionBank(
-  certification: string, 
-  subject: string
-): Promise<Question[]> {
+export async function loadQuestionBank(certification, subject) {
   try {
-    const path = `/cbt4cert/data/${encodeURIComponent(certification)}/${encodeURIComponent(subject)}/questions.json`
+    // 개발 환경과 배포 환경 모두 지원하는 경로
+    const isGitHubPages = window.location.hostname === 'dypar33.github.io'
+    const basePath = isGitHubPages ? '/cbt4cert' : ''
+    const path = `${basePath}/data/${encodeURIComponent(certification)}/${encodeURIComponent(subject)}/questions.json`
     const response = await fetch(path)
     if (!response.ok) {
       throw new Error(`문제 은행 로드 실패: ${response.status}`)
@@ -47,7 +49,7 @@ export async function loadQuestionBank(
 /**
  * 카탈로그 유효성 검사
  */
-function validateCatalog(catalog: any): asserts catalog is Catalog {
+function validateCatalog(catalog) {
   if (!catalog || typeof catalog !== 'object') {
     throw new Error('카탈로그 형식이 올바르지 않습니다.')
   }
@@ -69,7 +71,7 @@ function validateCatalog(catalog: any): asserts catalog is Catalog {
 /**
  * 문제 객체 정규화 - 기본값 적용 및 타입 추론
  */
-function normalizeQuestion(raw: any): Question {
+function normalizeQuestion(raw) {
   if (!raw || typeof raw !== 'object') {
     throw new Error('문제 데이터가 객체 형태가 아닙니다.')
   }

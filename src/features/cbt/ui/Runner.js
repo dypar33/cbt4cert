@@ -1,28 +1,21 @@
-import type { Question, QuizRun } from '../data/types.ts'
-import { submitAnswer } from '../engine/quiz-engine.ts'
-import { loadStorage, saveStorage } from '../../../utils/storage.ts'
-import { images } from '../../../assets/images.ts'
+import { submitAnswer } from '../engine/quiz-engine.js'
+import { loadStorage, saveStorage } from '../../../utils/storage.js'
+import { images } from '../../../assets/images.js'
 
 export class Runner {
-  private container: HTMLElement
-  private questions: Question[] = []
-  private run: QuizRun | null = null
-  private currentIndex: number = 0
-  private onComplete?: () => void
-  private feedbackShown: Set<number> = new Set() // 피드백이 표시된 문제 인덱스 추적
-
-  constructor(container: HTMLElement) {
+  constructor(container) {
     this.container = container
+    this.questions = []
+    this.run = null
+    this.currentIndex = 0
+    this.onComplete = null
+    this.feedbackShown = new Set() // 피드백이 표시된 문제 인덱스 추적
   }
 
   /**
    * 퀴즈 실행 화면 렌더링
    */
-  render(
-    questions: Question[], 
-    run: QuizRun, 
-    onComplete: () => void
-  ): void {
+  render(questions, run, onComplete) {
     this.questions = questions
     this.run = run
     this.onComplete = onComplete
@@ -39,7 +32,7 @@ export class Runner {
   /**
    * 현재 문제 렌더링
    */
-  private renderQuestion(): void {
+  renderQuestion() {
     if (!this.run || !this.questions.length) return
 
     const currentQuestion = this.getCurrentQuestion()
@@ -192,9 +185,9 @@ export class Runner {
   /**
    * 이미지 설정
    */
-  private setupImages(): void {
+  setupImages() {
     // 검은 고양이 아이콘 이미지 설정
-    const blackCatIcon = this.container.querySelector('.black-cat-icon') as HTMLElement
+    const blackCatIcon = this.container.querySelector('.black-cat-icon')
     if (blackCatIcon) {
       blackCatIcon.style.backgroundImage = `url(${images.blackCat})`
     }
@@ -203,7 +196,7 @@ export class Runner {
   /**
    * 답안 입력 UI 렌더링
    */
-  private renderAnswerInput(question: Question, userAnswer: string[]): string {
+  renderAnswerInput(question, userAnswer) {
     if (question.type === 'short' || !question.choices) {
       // 단답형
       return `
@@ -272,7 +265,7 @@ export class Runner {
   /**
    * 이벤트 리스너 연결
    */
-  private attachEventListeners(): void {
+  attachEventListeners() {
     // 네비게이션 이벤트는 renderQuestion()에서 연결됨
     
     // 키보드 단축키
@@ -282,7 +275,7 @@ export class Runner {
   /**
    * 네비게이션 버튼 이벤트 연결
    */
-  private attachNavigationEvents(): void {
+  attachNavigationEvents() {
     // 이전 버튼
     const prevBtn = this.container.querySelector('#prev-btn')
     prevBtn?.addEventListener('click', () => this.goToPrevious())
@@ -299,13 +292,13 @@ export class Runner {
   /**
    * 답안 입력 이벤트 연결
    */
-  private attachAnswerEvents(): void {
+  attachAnswerEvents() {
     const currentQuestion = this.getCurrentQuestion()
     if (!currentQuestion) return
 
     if (currentQuestion.type === 'short' || !currentQuestion.choices) {
       // 단답형
-      const input = this.container.querySelector('#short-answer') as HTMLInputElement
+      const input = this.container.querySelector('#short-answer')
       input?.addEventListener('input', () => {
         this.saveAnswer([input.value.trim()])
       })
@@ -331,7 +324,7 @@ export class Runner {
   /**
    * 객관식 답안 업데이트
    */
-  private updateMCQAnswer(): void {
+  updateMCQAnswer() {
     const currentQuestion = this.getCurrentQuestion()
     if (!currentQuestion) return
 
@@ -341,12 +334,12 @@ export class Runner {
       // 체크박스 (복수 선택)
       const checked = Array.from(
         this.container.querySelectorAll('input[type="checkbox"]:checked')
-      ) as HTMLInputElement[]
+      )
       const answers = checked.map(input => input.value)
       this.saveAnswer(answers)
     } else {
       // 라디오 (단일 선택)
-      const checked = this.container.querySelector('input[type="radio"]:checked') as HTMLInputElement
+      const checked = this.container.querySelector('input[type="radio"]:checked')
       const answers = checked ? [checked.value] : []
       this.saveAnswer(answers)
     }
@@ -355,7 +348,7 @@ export class Runner {
   /**
    * 답안 저장
    */
-  private saveAnswer(answer: string[]): void {
+  saveAnswer(answer) {
     if (!this.run) return
 
     const currentQuestion = this.getCurrentQuestion()
@@ -376,7 +369,7 @@ export class Runner {
   /**
    * 이전 문제로 이동
    */
-  private goToPrevious(): void {
+  goToPrevious() {
     if (this.currentIndex > 0) {
       this.currentIndex--
       this.renderQuestion()
@@ -387,7 +380,7 @@ export class Runner {
   /**
    * 다음 문제로 이동
    */
-  private goToNext(): void {
+  goToNext() {
     if (!this.run) return
     
     console.log('goToNext 호출됨')
@@ -433,7 +426,7 @@ export class Runner {
   /**
    * 퀴즈 완료
    */
-  private finish(): void {
+  finish() {
     if (confirm('퀴즈를 완료하시겠습니까?')) {
       this.onComplete?.()
     }
@@ -442,11 +435,11 @@ export class Runner {
   /**
    * 키보드 이벤트 처리
    */
-  private handleKeydown(e: KeyboardEvent): void {
+  handleKeydown(e) {
     // 숫자키로 선택지 선택 (1-9)
     if (e.key >= '1' && e.key <= '9') {
       const index = parseInt(e.key) - 1
-      const choice = this.container.querySelector(`#choice-${index}`) as HTMLInputElement
+      const choice = this.container.querySelector(`#choice-${index}`)
       if (choice) {
         choice.click()
       }
@@ -463,7 +456,7 @@ export class Runner {
   /**
    * 현재 문제 가져오기
    */
-  private getCurrentQuestion(): Question | undefined {
+  getCurrentQuestion() {
     if (!this.run) return undefined
     const questionId = this.run.questionIds[this.currentIndex]
     return this.questions.find(q => q.id === questionId)
@@ -472,8 +465,8 @@ export class Runner {
   /**
    * 답안 정답 여부 확인
    */
-  private checkAnswer(question: Question, userAnswer: string[]): boolean {
-    const normalizeAnswer = (answer: string) => 
+  checkAnswer(question, userAnswer) {
+    const normalizeAnswer = (answer) => 
       answer.toLowerCase().trim().replace(/\s+/g, ' ')
     
     const correctAnswers = question.answer.map(normalizeAnswer)
@@ -486,7 +479,7 @@ export class Runner {
   /**
    * 진행 상태 저장
    */
-  private saveProgress(): void {
+  saveProgress() {
     if (!this.run) return
     
     const storage = loadStorage()
@@ -498,12 +491,12 @@ export class Runner {
   /**
    * 진행 상태 복원
    */
-  private restoreProgress(): void {
+  restoreProgress() {
     const storage = loadStorage()
     if (storage.currentIndex !== undefined) {
       this.currentIndex = Math.max(0, Math.min(
         storage.currentIndex, 
-        this.run!.questionIds.length - 1
+        this.run.questionIds.length - 1
       ))
     }
   }
@@ -511,7 +504,7 @@ export class Runner {
   /**
    * 정리
    */
-  destroy(): void {
+  destroy() {
     document.removeEventListener('keydown', this.handleKeydown.bind(this))
   }
 }

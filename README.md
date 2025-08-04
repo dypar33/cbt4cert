@@ -72,7 +72,7 @@ npm run preview
 
 ## 📝 새로운 문제 세트 추가하기
 
-새로운 자격증이나 과목을 추가하려면 **코드 수정 없이** 다음 단계만 따르면 됩니다:
+새로운 자격증이나 과목을 추가하려면 **빌드 없이** 다음 단계만 따르면 됩니다:
 
 ### 1. 폴더 구조 생성
 
@@ -84,6 +84,8 @@ public/data/<자격증명>/<과목명>/questions.json
 ```
 public/data/정보처리기사/소프트웨어설계/questions.json
 ```
+
+⚡ **중요**: `public/data/` 폴더만 수정하면 됩니다. 빌드나 복사 작업이 필요 없습니다!
 
 ### 2. 문제 파일 작성 (questions.json)
 
@@ -138,3 +140,49 @@ public/data/정보처리기사/소프트웨어설계/questions.json
 ### 4. 완료!
 
 새로고침하면 새로운 자격증/과목이 자동으로 나타납니다.
+
+## 🌐 GitHub Pages 배포
+
+### 🎯 개선된 워크플로우
+
+이제 **데이터 변경 시 빌드가 필요 없습니다**! 
+
+#### 개발 중 데이터 추가/수정:
+1. `public/data/` 폴더에서 JSON 파일 수정
+2. 개발 서버에서 즉시 확인 (`npm run dev`)
+3. 변경사항이 바로 반영됨
+
+#### 배포 시:
+```bash
+# 코드 변경이 있을 때만 빌드
+npm run build:deploy
+
+# GitHub에 푸시
+git add .
+git commit -m "데이터 업데이트 또는 기능 개선"
+git push origin main
+```
+
+#### GitHub Pages 설정:
+1. GitHub 저장소 → Settings → Pages
+2. Source: "Deploy from a branch" 선택
+3. Branch: `main`, 폴더: `/ (root)` 선택
+4. Save 클릭
+
+### 📁 최종 구조 (배포 후):
+```
+/ (루트 - GitHub Pages가 서빙)
+├── index.html          # 빌드된 메인 파일
+├── 404.html            # SPA 지원  
+├── assets/             # 빌드된 CSS, JS
+├── public/data/        # 문제 데이터 (직접 수정)
+└── src/               # 소스 코드 (개발용)
+```
+
+### ⚡ 핵심 개선사항:
+- ✅ **데이터 변경 시 빌드 불필요**
+- ✅ **단일 데이터 소스** (`public/data/`)
+- ✅ **개발/배포 환경 통합**
+- ✅ **자동 경로 감지** (개발 vs 배포)
+
+이제 `public/data/` 폴더만 수정하면 개발 환경에서 즉시 확인할 수 있고, GitHub Pages에서도 자동으로 반영됩니다!

@@ -1,20 +1,17 @@
-import type { Catalog, QuizConfig } from '../data/types.ts'
-import { loadStorage, updatePreferences, toggleDarkMode } from '../../../utils/storage.ts'
-import { images } from '../../../assets/images.ts'
+import { loadStorage, updatePreferences, toggleDarkMode } from '../../../utils/storage.js'
+import { images } from '../../../assets/images.js'
 
 export class Home {
-  private container: HTMLElement
-  private catalog: Catalog | null = null
-  private onStartQuiz?: (config: QuizConfig) => void
-
-  constructor(container: HTMLElement) {
+  constructor(container) {
     this.container = container
+    this.catalog = null
+    this.onStartQuiz = null
   }
 
   /**
    * 홈 화면 렌더링
    */
-  render(catalog: Catalog, onStartQuiz: (config: QuizConfig) => void): void {
+  render(catalog, onStartQuiz) {
     this.catalog = catalog
     this.onStartQuiz = onStartQuiz
 
@@ -110,9 +107,9 @@ export class Home {
   /**
    * 이미지 설정
    */
-  private setupImages(): void {
+  setupImages() {
     // 고양이 아이콘 이미지 설정
-    const cuteCatIcon = this.container.querySelector('.cute-cat-icon') as HTMLElement
+    const cuteCatIcon = this.container.querySelector('.cute-cat-icon')
     if (cuteCatIcon) {
       cuteCatIcon.style.backgroundImage = `url(${images.cuteCat})`
     }
@@ -121,17 +118,17 @@ export class Home {
   /**
    * 이벤트 리스너 연결
    */
-  private attachEventListeners(): void {
+  attachEventListeners() {
     // 다크 모드 토글
-    const themeToggle = this.container.querySelector('#theme-toggle') as HTMLButtonElement
+    const themeToggle = this.container.querySelector('#theme-toggle')
     themeToggle.addEventListener('click', () => {
       const isDark = toggleDarkMode()
       themeToggle.textContent = isDark ? '☀️ 라이트 모드' : '🌙 다크 모드'
     })
 
     // 자격증 선택 시 과목 목록 업데이트
-    const certSelect = this.container.querySelector('#certification') as HTMLSelectElement
-    const subjectSelect = this.container.querySelector('#subject') as HTMLSelectElement
+    const certSelect = this.container.querySelector('#certification')
+    const subjectSelect = this.container.querySelector('#subject')
     
     certSelect.addEventListener('change', () => {
       const selectedCert = this.catalog?.certifications.find(cert => cert.name === certSelect.value)
@@ -162,7 +159,7 @@ export class Home {
     }
 
     // 폼 제출
-    const form = this.container.querySelector('#quiz-form') as HTMLFormElement
+    const form = this.container.querySelector('#quiz-form')
     form.addEventListener('submit', (e) => {
       e.preventDefault()
       this.handleFormSubmit()
@@ -172,12 +169,12 @@ export class Home {
   /**
    * 폼 제출 처리
    */
-  private handleFormSubmit(): void {
-    const certification = (this.container.querySelector('#certification') as HTMLSelectElement).value
-    const subject = (this.container.querySelector('#subject') as HTMLSelectElement).value
-    const order = (this.container.querySelector('#order') as HTMLSelectElement).value as QuizConfig['order']
-    const mode = (this.container.querySelector('#mode') as HTMLSelectElement).value as QuizConfig['mode']
-    const count = parseInt((this.container.querySelector('#count') as HTMLInputElement).value)
+  handleFormSubmit() {
+    const certification = this.container.querySelector('#certification').value
+    const subject = this.container.querySelector('#subject').value
+    const order = this.container.querySelector('#order').value
+    const mode = this.container.querySelector('#mode').value
+    const count = parseInt(this.container.querySelector('#count').value)
 
     if (!certification || !subject) {
       alert('자격증과 과목을 모두 선택해주세요.')
@@ -199,7 +196,7 @@ export class Home {
     })
 
     // 퀴즈 시작
-    const config: QuizConfig = {
+    const config = {
       certification,
       subject,
       order,

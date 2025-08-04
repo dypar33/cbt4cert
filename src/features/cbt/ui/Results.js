@@ -1,25 +1,15 @@
-import type { QuizResult, Question, QuizRun } from '../data/types.ts'
-
 export class Results {
-  private container: HTMLElement
-
-  constructor(container: HTMLElement) {
+  constructor(container) {
     this.container = container
   }
 
   /**
    * 결과 화면 렌더링
    */
-  render(
-    result: QuizResult, 
-    questions: Question[], 
-    run: QuizRun,
-    onRetry: () => void, 
-    onHome: () => void
-  ): void {
+  render(result, questions, run, onRetry, onHome) {
     const wrongQuestions = result.wrong.map(id => 
       questions.find(q => q.id === id)
-    ).filter(Boolean) as Question[]
+    ).filter(Boolean)
 
     const timeMinutes = Math.floor(result.timeSpent / 60000)
     const timeSeconds = Math.floor((result.timeSpent % 60000) / 1000)
@@ -179,9 +169,9 @@ export class Results {
   /**
    * 이벤트 리스너 연결
    */
-  private attachEventListeners(onRetry: () => void, onHome: () => void): void {
-    const retryBtn = this.container.querySelector('#retry-btn') as HTMLButtonElement
-    const homeBtn = this.container.querySelector('#home-btn') as HTMLButtonElement
+  attachEventListeners(onRetry, onHome) {
+    const retryBtn = this.container.querySelector('#retry-btn')
+    const homeBtn = this.container.querySelector('#home-btn')
 
     retryBtn.addEventListener('click', onRetry)
     homeBtn.addEventListener('click', onHome)

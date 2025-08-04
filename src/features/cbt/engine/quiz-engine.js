@@ -1,13 +1,7 @@
-import type { Question, QuizConfig, QuizRun, QuizResult, ImmediateFeedback } from '../data/types.ts'
-
 /**
  * 문제 계획 수립 - 출제 순서와 개수에 따라 문제 ID 목록을 생성
  */
-export function planQuestions(
-  bank: Question[], 
-  order: QuizConfig['order'], 
-  count: number
-): string[] {
+export function planQuestions(bank, order, count) {
   if (bank.length === 0) {
     throw new Error('문제 은행이 비어있습니다.')
   }
@@ -27,7 +21,7 @@ export function planQuestions(
       
     case 'randomRepeat':
       const shuffled = shuffle(questionIds)
-      const result: string[] = []
+      const result = []
       for (let i = 0; i < count; i++) {
         result.push(shuffled[i % shuffled.length])
       }
@@ -41,7 +35,7 @@ export function planQuestions(
 /**
  * 퀴즈 실행 시작 - 새로운 QuizRun 객체를 생성
  */
-export function startRun(config: QuizConfig, questionIds: string[]): QuizRun {
+export function startRun(config, questionIds) {
   return {
     id: generateRunId(),
     config,
@@ -55,12 +49,7 @@ export function startRun(config: QuizConfig, questionIds: string[]): QuizRun {
 /**
  * 답안 제출 - practice 모드에서는 즉시 피드백, exam 모드에서는 기록만
  */
-export function submitAnswer(
-  run: QuizRun, 
-  questionId: string, 
-  userAnswer: string[],
-  question?: Question
-): { run: QuizRun; feedback?: ImmediateFeedback } {
+export function submitAnswer(run, questionId, userAnswer, question) {
   // 답안 기록
   const updatedRun = {
     ...run,
@@ -82,12 +71,12 @@ export function submitAnswer(
 /**
  * 퀴즈 완료 - 최종 결과 계산
  */
-export function finishRun(run: QuizRun, questions: Question[]): QuizResult {
+export function finishRun(run, questions) {
   const endTime = Date.now()
   const questionMap = new Map(questions.map(q => [q.id, q]))
   
   let correct = 0
-  const wrong: string[] = []
+  const wrong = []
   
   for (const questionId of run.questionIds) {
     const question = questionMap.get(questionId)
@@ -116,7 +105,7 @@ export function finishRun(run: QuizRun, questions: Question[]): QuizResult {
 /**
  * 답안 정확성 확인 - 즉시 피드백용
  */
-function checkAnswer(userAnswer: string[], question: Question): ImmediateFeedback {
+function checkAnswer(userAnswer, question) {
   const correct = isCorrectAnswer(userAnswer, question)
   
   return {
@@ -129,8 +118,8 @@ function checkAnswer(userAnswer: string[], question: Question): ImmediateFeedbac
 /**
  * 답안이 정답인지 확인 - 대소문자 무시, 공백 제거
  */
-function isCorrectAnswer(userAnswer: string[], question: Question): boolean {
-  const normalizeAnswer = (answer: string) => 
+function isCorrectAnswer(userAnswer, question) {
+  const normalizeAnswer = (answer) => 
     answer.trim().toLowerCase().replace(/\s+/g, '')
   
   const normalizedUser = userAnswer.map(normalizeAnswer).sort()
@@ -148,7 +137,7 @@ function isCorrectAnswer(userAnswer: string[], question: Question): boolean {
 /**
  * 배열 셔플 - Fisher-Yates 알고리즘
  */
-export function shuffle<T>(array: T[]): T[] {
+export function shuffle(array) {
   const result = [...array]
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -160,14 +149,14 @@ export function shuffle<T>(array: T[]): T[] {
 /**
  * 실행 ID 생성 - 타임스탬프 + 랜덤
  */
-function generateRunId(): string {
+function generateRunId() {
   return `run_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 }
 
 /**
  * 시드 기반 랜덤 생성기 (테스트용)
  */
-export function seededRandom(seed: number): () => number {
+export function seededRandom(seed) {
   let state = seed
   return function() {
     state = (state * 1664525 + 1013904223) % 4294967296

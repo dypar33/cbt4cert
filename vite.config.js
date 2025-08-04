@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: '/cbt4cert/',
+  base: process.env.NODE_ENV === 'production' ? '/cbt4cert/' : '/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',

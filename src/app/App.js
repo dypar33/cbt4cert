@@ -1,25 +1,19 @@
-import type { Catalog, QuizRun, Question } from '../features/cbt/data/types.ts'
-import { loadCatalog, loadQuestionBank } from '../features/cbt/data/loader.ts'
-import { planQuestions, startRun, finishRun } from '../features/cbt/engine/quiz-engine.ts'
-import { Home } from '../features/cbt/ui/Home.ts'
-import { Results } from '../features/cbt/ui/Results.ts'
-import { Runner } from '../features/cbt/ui/Runner.ts'
-import { router, type Route } from './router.ts'
-import { loadStorage, saveStorage } from '../utils/storage.ts'
+import { loadCatalog, loadQuestionBank } from '../features/cbt/data/loader.js'
+import { planQuestions, startRun, finishRun } from '../features/cbt/engine/quiz-engine.js'
+import { Home } from '../features/cbt/ui/Home.js'
+import { Results } from '../features/cbt/ui/Results.js'
+import { Runner } from '../features/cbt/ui/Runner.js'
+import { router } from './router.js'
+import { loadStorage, saveStorage } from '../utils/storage.js'
 
 export class App {
-  private container: HTMLElement
-  private catalog: Catalog | null = null
-  private currentRun: QuizRun | null = null
-  private currentQuestions: Question[] = []
-  
-  // UI 컴포넌트들
-  private home: Home
-  private results: Results
-  private runner: Runner
-
-  constructor(container: HTMLElement) {
+  constructor(container) {
     this.container = container
+    this.catalog = null
+    this.currentRun = null
+    this.currentQuestions = []
+    
+    // UI 컴포넌트들
     this.home = new Home(container)
     this.results = new Results(container)
     this.runner = new Runner(container)
@@ -31,7 +25,7 @@ export class App {
   /**
    * 앱 초기화
    */
-  async initialize(): Promise<void> {
+  async initialize() {
     try {
       console.log('앱 초기화 중...')
       
@@ -54,7 +48,7 @@ export class App {
   /**
    * 라우트 변경 처리
    */
-  private async handleRouteChange(route: Route): Promise<void> {
+  async handleRouteChange(route) {
     console.log('라우트 변경:', route)
 
     try {
@@ -84,7 +78,7 @@ export class App {
   /**
    * 홈 화면 표시
    */
-  private showHome(): void {
+  showHome() {
     if (!this.catalog) {
       this.showError('카탈로그가 로드되지 않았습니다')
       return
@@ -98,7 +92,7 @@ export class App {
   /**
    * 퀴즈 화면 표시
    */
-  private async showQuiz(params: Record<string, string>): Promise<void> {
+  async showQuiz(params) {
     // URL에서 퀴즈 설정 파싱
     const config = router.parseQuizConfig(params)
     if (!config) {
@@ -146,7 +140,7 @@ export class App {
   /**
    * 결과 화면 표시
    */
-  private showResults(): void {
+  showResults() {
     if (!this.currentRun || !this.currentQuestions.length) {
       console.warn('표시할 결과가 없습니다')
       router.navigateToHome()
@@ -160,7 +154,7 @@ export class App {
   /**
    * 결과 데이터와 함께 결과 화면 표시
    */
-  private showResultsWithData(result: any): void {
+  showResultsWithData(result) {
     if (!this.currentRun) return
     
     this.results.render(
@@ -184,7 +178,7 @@ export class App {
   /**
    * 오류 화면 표시
    */
-  private showError(message: string, error?: any): void {
+  showError(message, error) {
     const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류'
     
     this.container.innerHTML = `
@@ -219,7 +213,7 @@ export class App {
   /**
    * 상태 저장
    */
-  private saveState(): void {
+  saveState() {
     const storage = loadStorage()
     storage.currentRun = this.currentRun || undefined
     saveStorage(storage)
@@ -228,7 +222,7 @@ export class App {
   /**
    * 상태 복원
    */
-  private restoreState(): void {
+  restoreState() {
     const storage = loadStorage()
     if (storage.currentRun) {
       this.currentRun = storage.currentRun
@@ -239,7 +233,7 @@ export class App {
   /**
    * 상태 초기화
    */
-  private clearState(): void {
+  clearState() {
     this.currentRun = null
     this.currentQuestions = []
     

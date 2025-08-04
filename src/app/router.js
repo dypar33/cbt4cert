@@ -1,14 +1,7 @@
-import type { QuizConfig } from '../features/cbt/data/types.ts'
-
-export interface Route {
-  path: string
-  params: Record<string, string>
-}
-
 export class HashRouter {
-  private listeners: ((route: Route) => void)[] = []
-
   constructor() {
+    this.listeners = []
+
     // 해시 변경 감지
     window.addEventListener('hashchange', () => {
       this.notifyListeners()
@@ -23,14 +16,14 @@ export class HashRouter {
   /**
    * 현재 라우트 파싱
    */
-  getCurrentRoute(): Route {
+  getCurrentRoute() {
     const hash = window.location.hash.slice(1) // # 제거
     if (!hash) {
       return { path: '/', params: {} }
     }
 
     const [path, queryString] = hash.split('?')
-    const params: Record<string, string> = {}
+    const params = {}
 
     if (queryString) {
       const urlParams = new URLSearchParams(queryString)
@@ -45,14 +38,14 @@ export class HashRouter {
   /**
    * 라우트 변경 리스너 등록
    */
-  onRouteChange(listener: (route: Route) => void): void {
+  onRouteChange(listener) {
     this.listeners.push(listener)
   }
 
   /**
    * 프로그래밍 방식으로 라우트 변경
    */
-  navigate(path: string, params?: Record<string, string>): void {
+  navigate(path, params) {
     let url = `#${path}`
     
     if (params && Object.keys(params).length > 0) {
@@ -69,7 +62,7 @@ export class HashRouter {
   /**
    * 퀴즈 페이지로 이동
    */
-  navigateToQuiz(config: QuizConfig): void {
+  navigateToQuiz(config) {
     const params = new URLSearchParams({
       cert: config.certification,
       subject: config.subject,
@@ -84,21 +77,21 @@ export class HashRouter {
   /**
    * 결과 페이지로 이동
    */
-  navigateToResults(): void {
+  navigateToResults() {
     this.navigate('/results')
   }
 
   /**
    * 홈으로 이동
    */
-  navigateToHome(): void {
+  navigateToHome() {
     this.navigate('/')
   }
 
   /**
    * URL 파라미터에서 퀴즈 설정 파싱
    */
-  parseQuizConfig(params: Record<string, string>): QuizConfig | null {
+  parseQuizConfig(params) {
     const { cert, subject, order, mode, count } = params
 
     if (!cert || !subject || !order || !mode || !count) {
@@ -121,8 +114,8 @@ export class HashRouter {
     return {
       certification: cert,
       subject: subject,
-      order: order as QuizConfig['order'],
-      mode: mode as QuizConfig['mode'],
+      order: order,
+      mode: mode,
       count: parsedCount
     }
   }
@@ -130,8 +123,9 @@ export class HashRouter {
   /**
    * 리스너들에게 라우트 변경 알림
    */
-  private notifyListeners(): void {
+  notifyListeners() {
     const route = this.getCurrentRoute()
+    console.log('라우트 변경:', route)
     this.listeners.forEach(listener => listener(route))
   }
 }
