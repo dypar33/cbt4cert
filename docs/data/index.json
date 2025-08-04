@@ -1,17 +1,8 @@
 {
-  "categories": [
+  "certifications": [
     {
-      "id": "컴퓨터활용능력1급필기",
-      "name": "컴퓨터활용능력 1급 필기",
-      "description": "컴퓨터활용능력 1급 필기 시험 문제",
-      "subjects": [
-        {
-          "id": "1과목_컴퓨터일반",
-          "name": "1과목 컴퓨터일반",
-          "description": "컴퓨터 일반 지식",
-          "questionCount": 18
-        }
-      ]
+      "name": "컴퓨터활용능력1급필기",
+      "subjects": ["1과목_컴퓨터일반"]
     }
   ]
 }
