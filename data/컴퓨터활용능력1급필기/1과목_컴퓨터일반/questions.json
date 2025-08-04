@@ -1,0 +1,17 @@
+[
+    {
+      "id": "cn-001",
+      "question": "다음 중 Windows 10의 바로 가기 키에 대한 설명으로 옳은 것은?",
+      "description": "22년 2회",
+      "type": "mcq",
+      "choices": [
+        "Alt + Enter : 선택된 항목의 속성 창을 호출함",
+        "Alt + Print Screen : 현재 활성화된 창을 화면에 복사함", 
+        "Ctrl + Esc : 열려 있는 창을 닫음",
+        "Ctrl + Tab : [시작] 메뉴를 표시함"
+      ],
+      "answer": ["Alt + Enter : 선택된 항목의 속성 창을 호출함"],
+      "explanation": "Alt + Print Screen : 현재 작업 중인 활성 창을 클립보드에 복사함\nCtrl + Esc : [시작] 메뉴를 표시함 (Alt + F4 : 열려 있는 창을 닫음\nCtrl + Tab : 다음 탭으로 이동함"
+    }
+  ]
+  
