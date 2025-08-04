@@ -4,6 +4,17 @@ export class Results {
   }
 
   /**
+   * 텍스트 포맷팅 - 줄바꿈과 공백 처리
+   */
+  formatText(text) {
+    if (!text) return ''
+    return text
+      .replace(/\\n/g, '\n')  // \\n을 실제 줄바꿈으로 변환
+      .replace(/\n/g, '<br>') // 줄바꿈을 <br>로 변환
+      .replace(/\s{2,}/g, ' ') // 연속된 공백을 하나로 변환
+  }
+
+  /**
    * 결과 화면 렌더링
    */
   render(result, questions, run, onRetry, onHome) {
@@ -127,7 +138,7 @@ export class Results {
                           <div style="font-weight: 500; color: var(--color-primary); margin-bottom: var(--space-1);">
                             💡 해설
                           </div>
-                          ${q.explanation}
+                          ${this.formatText(q.explanation)}
                         </div>
                       ` : ''}
                     </div>
