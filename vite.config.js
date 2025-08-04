@@ -3,9 +3,9 @@ import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 
 export default defineConfig({
-  base: process.env.NODE_ENV === 'production' ? '/cbt4cert/' : '/',
+  base: './',
   build: {
-    outDir: 'dist',
+    outDir: 'docs',
     assetsDir: 'assets',
     sourcemap: false,
     minify: 'esbuild',
@@ -47,12 +47,12 @@ export default defineConfig({
         }
         
         // data 폴더 복사
-        copyDir('data', 'dist/data')
+        copyDir('data', 'docs/data')
         
         // assets/images 폴더 복사
-        copyDir('assets/images', 'dist/assets/images')
+        copyDir('assets/images', 'docs/assets/images')
         
-        console.log('Static assets copied to dist/')
+        console.log('Static assets copied to docs/')
       }
     }
   ]
