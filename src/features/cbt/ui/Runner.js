@@ -33,6 +33,9 @@ export class Runner {
     this.currentIndex = 0
     this.onComplete = null
     this.feedbackShown = new Set() // 피드백이 표시된 문제 인덱스 추적
+    this.boundHandleKeydown = this.handleKeydown.bind(this) // 바인딩된 함수 참조 저장
+    this.randomQuestionHistory = [] // 랜덤 반복 모드에서 선택된 문제 기록
+    this.totalQuestionsAnswered = 0 // 랜덤 반복 모드에서 답변한 총 문제 수
   }
 
   /**
@@ -44,6 +47,13 @@ export class Runner {
     this.onComplete = onComplete
     this.currentIndex = 0
     this.feedbackShown.clear() // 피드백 상태 초기화
+    this.randomQuestionHistory = [] // 랜덤 문제 기록 초기화
+    this.totalQuestionsAnswered = 0 // 답변한 문제 수 초기화
+
+    // 랜덤 반복 모드인 경우 첫 번째 문제를 랜덤으로 선택
+    if (this.run.config.order === 'randomRepeat') {
+      this.selectRandomQuestion()
+    }
 
     // 저장된 진행 상태 복원
     this.restoreProgress()
@@ -52,158 +62,6 @@ export class Runner {
     this.attachEventListeners()
   }
 
-  /**
-   * 현재 문제 렌더링
-   */
-  renderQuestion() {
-    if (!this.run || !this.questions.length) return
-
-    const currentQuestion = this.getCurrentQuestion()
-    if (!currentQuestion) return
-
-    const progress = ((this.currentIndex + 1) / this.run.questionIds.length) * 100
-    const userAnswer = this.run.answers[currentQuestion.id] || []
-    const isAnswered = userAnswer.length > 0
-
-    // Practice 모드에서 피드백이 표시된 문제인 경우에만 피드백 표시
-    const showFeedback = this.run.config.mode === 'practice' && isAnswered && this.feedbackShown.has(this.currentIndex)
-    const isCorrect = showFeedback ? this.checkAnswer(currentQuestion, userAnswer) : false
-
-    this.container.innerHTML = `
-      <div class="container">
-        <!-- 헤더 -->
-        <header style="
-          display: flex; 
-          justify-content: space-between; 
-          align-items: center; 
-          margin-bottom: var(--space-6);
-          padding: var(--space-4) 0;
-          border-bottom: 1px solid var(--color-border);
-        ">
-          <div style="font-weight: 500; color: var(--color-text-secondary);">
-            ${this.currentIndex + 1} / ${this.run.questionIds.length}
-          </div>
-          <div style="
-            background: var(--color-surface); 
-            padding: var(--space-2) var(--space-4); 
-            border-radius: var(--radius-lg);
-            font-size: var(--font-size-sm);
-            color: var(--color-text-secondary);
-          ">
-            ${this.run.config.mode === 'practice' ? '연습 모드' : '시험 모드'}
-          </div>
-        </header>
-
-        <!-- 진행률 바 -->
-        <div class="progress-bar" style="
-          height: 8px; 
-          margin-bottom: var(--space-8);
-        ">
-          <div class="progress-fill" style="
-            height: 100%; 
-            width: ${progress}%;
-            transition: width 0.3s ease;
-          "></div>
-          <div class="progress-cat black-cat-icon"></div>
-        </div>
-
-        <!-- 문제 영역 -->
-        <div style="max-width: 600px; margin: 0 auto;">
-          <!-- 문제 정보 -->
-          ${currentQuestion.description ? `
-            <div style="
-              color: var(--color-text-secondary); 
-              font-size: var(--font-size-sm); 
-              margin-bottom: var(--space-2);
-            ">
-              ${currentQuestion.description}
-            </div>
-          ` : ''}
-
-          <!-- 문제 내용 -->
-          <div style="
-            font-size: var(--font-size-lg); 
-            font-weight: 500; 
-            margin-bottom: var(--space-6);
-            line-height: 1.6;
-          ">
-            ${formatText(currentQuestion.question)}
-          </div>
-
-          <!-- 답안 입력 영역 -->
-          <div id="answer-area" style="margin-bottom: var(--space-8);">
-            ${this.renderAnswerInput(currentQuestion, userAnswer)}
-          </div>
-
-          <!-- 피드백 영역 (Practice 모드) -->
-          ${showFeedback ? `
-            <div class="${isCorrect ? 'feedback-success' : 'feedback-error'}" style="
-              padding: var(--space-4);
-              margin-bottom: var(--space-6);
-              color: white;
-            ">
-              <div style="
-                display: flex; 
-                align-items: center; 
-                gap: var(--space-2); 
-                margin-bottom: var(--space-2);
-                font-weight: 500;
-              ">
-                ${isCorrect ? '✅ 정답입니다!' : '❌ 틀렸습니다.'}
-              </div>
-              <div style="opacity: 0.9; font-size: var(--font-size-sm);">
-                정답: ${currentQuestion.answer.map(ans => formatText(ans)).join(', ')}
-              </div>
-              ${currentQuestion.explanation ? `
-                <div style="
-                  opacity: 0.9; 
-                  font-size: var(--font-size-sm); 
-                  margin-top: var(--space-2);
-                  padding-top: var(--space-2);
-                  border-top: 1px solid rgba(255,255,255,0.2);
-                ">
-                  ${formatText(currentQuestion.explanation)}
-                </div>
-              ` : ''}
-            </div>
-          ` : ''}
-
-          <!-- 네비게이션 버튼 -->
-          <div style="
-            display: flex; 
-            gap: var(--space-4); 
-            justify-content: space-between;
-            align-items: center;
-          ">
-            <button 
-              class="btn btn-secondary" 
-              id="prev-btn"
-              ${this.currentIndex === 0 ? 'disabled' : ''}
-            >
-              ← 이전
-            </button>
-
-            <div style="display: flex; gap: var(--space-2);">
-              ${this.currentIndex === this.run.questionIds.length - 1 ? `
-                <button class="btn btn-primary" id="finish-btn">
-                  완료
-                </button>
-              ` : `
-                <button class="btn btn-primary" id="next-btn">
-                  다음 →
-                </button>
-              `}
-            </div>
-          </div>
-        </div>
-      </div>
-    `
-    
-    // HTML이 새로 생성되었으므로 모든 이벤트 리스너 다시 연결
-    this.attachNavigationEvents()
-    this.attachAnswerEvents()
-    this.setupImages()
-  }
 
   /**
    * 이미지 설정
@@ -291,8 +149,11 @@ export class Runner {
   attachEventListeners() {
     // 네비게이션 이벤트는 renderQuestion()에서 연결됨
     
-    // 키보드 단축키
-    document.addEventListener('keydown', this.handleKeydown.bind(this))
+    // 기존 키보드 이벤트 리스너 제거
+    document.removeEventListener('keydown', this.boundHandleKeydown)
+    
+    // 키보드 단축키 새로 등록
+    document.addEventListener('keydown', this.boundHandleKeydown)
   }
 
   /**
@@ -310,6 +171,10 @@ export class Runner {
     // 완료 버튼
     const finishBtn = this.container.querySelector('#finish-btn')
     finishBtn?.addEventListener('click', () => this.finish())
+
+    // 종료 버튼
+    const exitBtn = this.container.querySelector('#exit-btn')
+    exitBtn?.addEventListener('click', () => this.exit())
   }
 
   /**
@@ -415,14 +280,12 @@ export class Runner {
       const currentQuestion = this.getCurrentQuestion()
       if (currentQuestion) {
         const userAnswer = this.run.answers[currentQuestion.id] || []
-        const isAnswered = userAnswer.length > 0
         
-        console.log('답안 여부:', isAnswered)
         console.log('사용자 답안:', userAnswer)
         console.log('피드백 표시 여부:', this.feedbackShown.has(this.currentIndex))
         
-        // 답안이 있고 아직 피드백을 보지 않았다면 피드백 표시
-        if (isAnswered && !this.feedbackShown.has(this.currentIndex)) {
+        // 아직 피드백을 보지 않았다면 피드백 표시 (답안이 없어도 표시)
+        if (!this.feedbackShown.has(this.currentIndex)) {
           console.log('피드백 표시 중...')
           this.feedbackShown.add(this.currentIndex)
           this.renderQuestion() // 피드백이 포함된 화면 다시 렌더링
@@ -437,7 +300,26 @@ export class Runner {
       }
     }
     
-    // 일반적인 다음 문제로 이동
+    // 랜덤 반복 모드 처리
+    if (this.run.config.order === 'randomRepeat') {
+      this.totalQuestionsAnswered++
+      
+      // 설정된 문제 수에 도달했는지 확인
+      if (this.totalQuestionsAnswered >= this.run.config.count) {
+        // 완료 버튼으로 변경하기 위해 currentIndex를 마지막으로 설정
+        this.currentIndex = this.run.questionIds.length - 1
+        this.renderQuestion()
+        return
+      }
+      
+      // 다음 랜덤 문제 선택
+      this.selectRandomQuestion()
+      this.renderQuestion()
+      this.saveProgress()
+      return
+    }
+    
+    // 일반적인 다음 문제로 이동 (sequential, random 모드)
     console.log('다음 문제로 이동 중...')
     if (this.currentIndex < this.run.questionIds.length - 1) {
       this.currentIndex++
@@ -450,7 +332,34 @@ export class Runner {
    * 퀴즈 완료
    */
   finish() {
+    // 연습 모드에서 마지막 문제의 피드백을 아직 보지 않았다면 먼저 피드백 표시
+    if (this.run.config.mode === 'practice' && !this.feedbackShown.has(this.currentIndex)) {
+      console.log('마지막 문제 피드백 표시 중...')
+      this.feedbackShown.add(this.currentIndex)
+      this.renderQuestion() // 피드백이 포함된 화면 다시 렌더링
+      return // 완료하지 않고 피드백만 표시
+    }
+    
+    // 피드백을 이미 봤거나 시험 모드인 경우 완료 진행
     if (confirm('퀴즈를 완료하시겠습니까?')) {
+      this.onComplete?.()
+    }
+  }
+
+  /**
+   * 퀴즈 중간 종료
+   */
+  exit() {
+    const answeredCount = Object.keys(this.run.answers).length
+    const totalCount = this.run.questionIds.length
+    
+    const message = answeredCount > 0 
+      ? `현재까지 ${answeredCount}/${totalCount}개 문제를 풀었습니다.\n정말로 종료하시겠습니까?`
+      : '정말로 퀴즈를 종료하시겠습니까?'
+    
+    if (confirm(message)) {
+      // 진행 상태 저장 후 완료 처리
+      this.saveProgress()
       this.onComplete?.()
     }
   }
@@ -459,12 +368,29 @@ export class Runner {
    * 키보드 이벤트 처리
    */
   handleKeydown(e) {
+    // 키 반복 이벤트 무시 (키를 꾹 누르고 있을 때 발생하는 연속 이벤트 방지)
+    if (e.repeat) {
+      return
+    }
+    
     // 숫자키로 선택지 선택 (1-9)
     if (e.key >= '1' && e.key <= '9') {
       const index = parseInt(e.key) - 1
       const choice = this.container.querySelector(`#choice-${index}`)
       if (choice) {
         choice.click()
+      }
+    }
+    
+    // Enter 키로 '다음' 버튼 클릭 (텍스트 입력 필드가 포커스되지 않은 경우)
+    if (e.key === 'Enter' && !(document.activeElement.tagName === 'INPUT' && document.activeElement.type === 'text')) {
+      e.preventDefault()
+      const nextBtn = this.container.querySelector('#next-btn')
+      const finishBtn = this.container.querySelector('#finish-btn')
+      if (nextBtn && !nextBtn.disabled) {
+        nextBtn.click()
+      } else if (finishBtn) {
+        finishBtn.click()
       }
     }
     
@@ -525,9 +451,274 @@ export class Runner {
   }
 
   /**
+   * 자동 포커스 설정
+   */
+  setAutoFocus() {
+    const currentQuestion = this.getCurrentQuestion()
+    if (!currentQuestion) return
+
+    // 단답형 문제일 때 입력 필드에 자동 포커스
+    if (currentQuestion.type === 'short' || !currentQuestion.choices) {
+      setTimeout(() => {
+        const shortAnswer = this.container.querySelector('#short-answer')
+        if (shortAnswer) {
+          shortAnswer.focus()
+          // 커서를 텍스트 끝으로 이동
+          shortAnswer.setSelectionRange(shortAnswer.value.length, shortAnswer.value.length)
+        }
+      }, 100)
+    }
+  }
+
+  /**
+   * 랜덤 문제 선택 (랜덤 반복 모드용)
+   */
+  selectRandomQuestion() {
+    if (!this.run || this.run.config.order !== 'randomRepeat') return
+    
+    // 원본 문제 ID 목록 (엔진에서 반환된 전체 문제 목록)
+    const originalQuestionIds = this.questions.map(q => q.id)
+    
+    let selectedQuestionId
+    let attempts = 0
+    const maxAttempts = 50 // 무한 루프 방지
+    
+    // 연속으로 같은 문제가 나오지 않도록 처리
+    do {
+      const randomIndex = Math.floor(Math.random() * originalQuestionIds.length)
+      selectedQuestionId = originalQuestionIds[randomIndex]
+      attempts++
+    } while (
+      attempts < maxAttempts && 
+      this.randomQuestionHistory.length > 0 && 
+      selectedQuestionId === this.randomQuestionHistory[this.randomQuestionHistory.length - 1]
+    )
+    
+    // 선택된 문제를 기록에 추가
+    this.randomQuestionHistory.push(selectedQuestionId)
+    
+    // run.questionIds를 현재 선택된 문제들로 업데이트
+    this.run.questionIds = [...this.randomQuestionHistory]
+    
+    // 현재 인덱스를 마지막 문제로 설정
+    this.currentIndex = this.randomQuestionHistory.length - 1
+  }
+
+  /**
+   * 현재 문제 렌더링 (진행률 수정)
+   */
+  renderQuestion() {
+    if (!this.run || !this.questions.length) return
+
+    const currentQuestion = this.getCurrentQuestion()
+    if (!currentQuestion) return
+
+    // 랜덤 반복 모드에서는 답변한 문제 수 기준으로 진행률 계산
+    let progress, progressText
+    if (this.run.config.order === 'randomRepeat') {
+      progress = (this.totalQuestionsAnswered / this.run.config.count) * 100
+      progressText = `${this.totalQuestionsAnswered + 1} / ${this.run.config.count}`
+    } else {
+      progress = ((this.currentIndex + 1) / this.run.questionIds.length) * 100
+      progressText = `${this.currentIndex + 1} / ${this.run.questionIds.length}`
+    }
+
+    // 랜덤 반복 모드에서 새 문제일 때 이전 답안 초기화
+    const userAnswer = this.shouldClearAnswer(currentQuestion) ? [] : (this.run.answers[currentQuestion.id] || [])
+    const isAnswered = userAnswer.length > 0
+
+    // Practice 모드에서 피드백이 표시된 문제인 경우에만 피드백 표시 (답안이 없어도 표시)
+    const showFeedback = this.run.config.mode === 'practice' && this.feedbackShown.has(this.currentIndex)
+    const isCorrect = showFeedback && isAnswered ? this.checkAnswer(currentQuestion, userAnswer) : false
+
+    this.container.innerHTML = `
+      <div class="container">
+        <!-- 헤더 -->
+        <header style="
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          margin-bottom: var(--space-6);
+          padding: var(--space-4) 0;
+          border-bottom: 1px solid var(--color-border);
+        ">
+          <div style="font-weight: 500; color: var(--color-text-secondary);">
+            ${progressText}
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);">
+            <div style="
+              background: var(--color-surface); 
+              padding: var(--space-2) var(--space-4); 
+              border-radius: var(--radius-lg);
+              font-size: var(--font-size-sm);
+              color: var(--color-text-secondary);
+            ">
+              ${this.run.config.mode === 'practice' ? '연습 모드' : '시험 모드'}
+            </div>
+            <button 
+              class="btn btn-secondary" 
+              id="exit-btn"
+              style="
+                font-size: var(--font-size-sm);
+                padding: var(--space-2) var(--space-3);
+                background: var(--color-error);
+                color: white;
+                border: none;
+              "
+            >
+              종료
+            </button>
+          </div>
+        </header>
+
+        <!-- 진행률 바 -->
+        <div class="progress-bar" style="
+          height: 8px; 
+          margin-bottom: var(--space-8);
+        ">
+          <div class="progress-fill" style="
+            height: 100%; 
+            width: ${progress}%;
+            transition: width 0.3s ease;
+          "></div>
+          <div class="progress-cat black-cat-icon"></div>
+        </div>
+
+        <!-- 문제 영역 -->
+        <div style="max-width: 600px; margin: 0 auto;">
+          <!-- 문제 정보 -->
+          ${currentQuestion.description ? `
+            <div style="
+              color: var(--color-text-secondary); 
+              font-size: var(--font-size-sm); 
+              margin-bottom: var(--space-2);
+            ">
+              ${currentQuestion.description}
+            </div>
+          ` : ''}
+
+          <!-- 문제 내용 -->
+          <div style="
+            font-size: var(--font-size-lg); 
+            font-weight: 500; 
+            margin-bottom: var(--space-6);
+            line-height: 1.6;
+          ">
+            ${formatText(currentQuestion.question)}
+          </div>
+
+          <!-- 답안 입력 영역 -->
+          <div id="answer-area" style="margin-bottom: var(--space-8);">
+            ${this.renderAnswerInput(currentQuestion, userAnswer)}
+          </div>
+
+          <!-- 피드백 영역 (Practice 모드) -->
+          ${showFeedback ? `
+            <div class="${isCorrect ? 'feedback-success' : 'feedback-error'}" style="
+              padding: var(--space-4);
+              margin-bottom: var(--space-6);
+              color: white;
+            ">
+              <div style="
+                display: flex; 
+                align-items: center; 
+                gap: var(--space-2); 
+                margin-bottom: var(--space-2);
+                font-weight: 500;
+              ">
+                ${isCorrect ? '✅ 정답입니다!' : '❌ 틀렸습니다.'}
+              </div>
+              <div style="opacity: 0.9; font-size: var(--font-size-sm);">
+                정답: ${currentQuestion.answer.map(ans => formatText(ans)).join(', ')}
+              </div>
+              ${currentQuestion.explanation ? `
+                <div style="
+                  opacity: 0.9; 
+                  font-size: var(--font-size-sm); 
+                  margin-top: var(--space-2);
+                  padding-top: var(--space-2);
+                  border-top: 1px solid rgba(255,255,255,0.2);
+                ">
+                  ${formatText(currentQuestion.explanation)}
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+
+          <!-- 네비게이션 버튼 -->
+          <div style="
+            display: flex; 
+            gap: var(--space-4); 
+            justify-content: space-between;
+            align-items: center;
+          ">
+            <button 
+              class="btn btn-secondary" 
+              id="prev-btn"
+              ${this.shouldDisablePrevButton() ? 'disabled' : ''}
+            >
+              ← 이전
+            </button>
+
+            <div style="display: flex; gap: var(--space-2);">
+              ${this.shouldShowFinishButton() ? `
+                <button class="btn btn-primary" id="finish-btn">
+                  완료
+                </button>
+              ` : `
+                <button class="btn btn-primary" id="next-btn">
+                  다음 →
+                </button>
+              `}
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+    
+    // HTML이 새로 생성되었으므로 모든 이벤트 리스너 다시 연결
+    this.attachNavigationEvents()
+    this.attachAnswerEvents()
+    this.setupImages()
+    
+    // 단답형 문제일 때 자동 포커스
+    this.setAutoFocus()
+  }
+
+  /**
+   * 답안을 초기화해야 하는지 확인 (랜덤 반복 모드용)
+   */
+  shouldClearAnswer(currentQuestion) {
+    if (this.run.config.order !== 'randomRepeat') return false
+    
+    // 랜덤 반복 모드에서는 항상 새로운 문제로 취급하여 답안 초기화
+    return true
+  }
+
+  /**
+   * 이전 버튼을 비활성화해야 하는지 확인
+   */
+  shouldDisablePrevButton() {
+    if (this.run.config.order === 'randomRepeat') {
+      return this.randomQuestionHistory.length <= 1
+    }
+    return this.currentIndex === 0
+  }
+
+  /**
+   * 완료 버튼을 표시해야 하는지 확인
+   */
+  shouldShowFinishButton() {
+    if (this.run.config.order === 'randomRepeat') {
+      return this.totalQuestionsAnswered >= this.run.config.count
+    }
+    return this.currentIndex === this.run.questionIds.length - 1
+  }
+
+  /**
    * 정리
    */
   destroy() {
-    document.removeEventListener('keydown', this.handleKeydown.bind(this))
+    document.removeEventListener('keydown', this.boundHandleKeydown)
   }
 }

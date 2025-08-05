@@ -46,9 +46,6 @@ export default defineConfig({
           }
         }
         
-        // data 폴더 복사
-        copyDir('data', 'docs/data')
-        
         // assets/images 폴더 복사
         copyDir('assets/images', 'docs/assets/images')
         

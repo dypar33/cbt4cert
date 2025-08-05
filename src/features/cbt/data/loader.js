@@ -3,10 +3,10 @@
  */
 export async function loadCatalog() {
   try {
-    // 개발 환경과 배포 환경 모두 지원하는 경로
-    // GitHub Pages에서는 /cbt4cert/ 경로 사용, 로컬에서는 루트 경로 사용
+    // 개발 환경과 배포 환경 모두 docs/data 폴더 사용
+    // GitHub Pages에서는 /cbt4cert/data/ 경로 사용, 로컬에서는 docs/data/ 경로 사용
     const isGitHubPages = window.location.hostname === 'dypar33.github.io'
-    const basePath = isGitHubPages ? '/cbt4cert' : ''
+    const basePath = isGitHubPages ? '/cbt4cert' : '/docs'
     const response = await fetch(`${basePath}/data/index.json`)
     if (!response.ok) {
       throw new Error(`카탈로그 로드 실패: ${response.status}`)
@@ -25,9 +25,10 @@ export async function loadCatalog() {
  */
 export async function loadQuestionBank(certification, subject) {
   try {
-    // 개발 환경과 배포 환경 모두 지원하는 경로
+    // 개발 환경과 배포 환경 모두 docs/data 폴더 사용
+    // GitHub Pages에서는 /cbt4cert/data/ 경로 사용, 로컬에서는 docs/data/ 경로 사용
     const isGitHubPages = window.location.hostname === 'dypar33.github.io'
-    const basePath = isGitHubPages ? '/cbt4cert' : ''
+    const basePath = isGitHubPages ? '/cbt4cert' : '/docs'
     const path = `${basePath}/data/${encodeURIComponent(certification)}/${encodeURIComponent(subject)}/questions.json`
     const response = await fetch(path)
     if (!response.ok) {
