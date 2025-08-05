@@ -79,7 +79,12 @@ export function finishRun(run, questions) {
   const wrong = []
   
   for (const questionId of run.questionIds) {
-    const question = questionMap.get(questionId)
+    // 랜덤 반복 모드에서는 고유 ID에서 원본 ID를 추출
+    const originalQuestionId = run.config.order === 'randomRepeat' 
+      ? questionId.split('_')[0] 
+      : questionId
+    
+    const question = questionMap.get(originalQuestionId)
     const userAnswer = run.answers[questionId] || []
     
     if (question && isCorrectAnswer(userAnswer, question)) {
@@ -89,7 +94,8 @@ export function finishRun(run, questions) {
     }
   }
   
-  const total = run.questionIds.length
+  // 랜덤 반복 모드에서는 설정된 전체 문제 수를 기준으로 점수 계산
+  const total = run.config.order === 'randomRepeat' ? run.config.count : run.questionIds.length
   const score = total > 0 ? Math.round((correct / total) * 100) : 0
   const timeSpent = endTime - run.startTime
   

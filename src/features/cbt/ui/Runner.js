@@ -242,8 +242,13 @@ export class Runner {
     const currentQuestion = this.getCurrentQuestion()
     if (!currentQuestion) return
 
+    // 랜덤 반복 모드에서는 고유 ID를 사용하여 답안 저장
+    const questionId = this.run.config.order === 'randomRepeat' 
+      ? this.run.questionIds[this.currentIndex]  // 고유 ID 사용
+      : currentQuestion.id  // 원본 ID 사용
+
     // 퀴즈 엔진에 답안 제출 (question 파라미터 추가)
-    const result = submitAnswer(this.run, currentQuestion.id, answer, currentQuestion)
+    const result = submitAnswer(this.run, questionId, answer, currentQuestion)
     
     // 업데이트된 run 상태 적용
     this.run = result.run
@@ -279,7 +284,11 @@ export class Runner {
     if (this.run.config.mode === 'practice') {
       const currentQuestion = this.getCurrentQuestion()
       if (currentQuestion) {
-        const userAnswer = this.run.answers[currentQuestion.id] || []
+        // 랜덤 반복 모드에서는 고유 ID를 사용하여 답안 확인
+        const questionId = this.run.config.order === 'randomRepeat' 
+          ? this.run.questionIds[this.currentIndex]  // 고유 ID 사용
+          : currentQuestion.id  // 원본 ID 사용
+        const userAnswer = this.run.answers[questionId] || []
         
         console.log('사용자 답안:', userAnswer)
         console.log('피드백 표시 여부:', this.feedbackShown.has(this.currentIndex))
@@ -351,7 +360,11 @@ export class Runner {
    */
   exit() {
     const answeredCount = Object.keys(this.run.answers).length
-    const totalCount = this.run.questionIds.length
+    
+    // 랜덤 반복 모드에서는 설정된 전체 문제 수를 기준으로 표시
+    const totalCount = this.run.config.order === 'randomRepeat' 
+      ? this.run.config.count 
+      : this.run.questionIds.length
     
     const message = answeredCount > 0 
       ? `현재까지 ${answeredCount}/${totalCount}개 문제를 풀었습니다.\n정말로 종료하시겠습니까?`
@@ -408,7 +421,13 @@ export class Runner {
   getCurrentQuestion() {
     if (!this.run) return undefined
     const questionId = this.run.questionIds[this.currentIndex]
-    return this.questions.find(q => q.id === questionId)
+    
+    // 랜덤 반복 모드에서는 고유 ID에서 원본 ID를 추출
+    const originalQuestionId = this.run.config.order === 'randomRepeat' 
+      ? questionId.split('_')[0] 
+      : questionId
+    
+    return this.questions.find(q => q.id === originalQuestionId)
   }
 
   /**
@@ -491,11 +510,14 @@ export class Runner {
     } while (
       attempts < maxAttempts && 
       this.randomQuestionHistory.length > 0 && 
-      selectedQuestionId === this.randomQuestionHistory[this.randomQuestionHistory.length - 1]
+      selectedQuestionId === this.randomQuestionHistory[this.randomQuestionHistory.length - 1].split('_')[0]
     )
     
-    // 선택된 문제를 기록에 추가
-    this.randomQuestionHistory.push(selectedQuestionId)
+    // 랜덤 반복 모드에서는 각 문제 인스턴스를 고유하게 식별하기 위해 인덱스를 추가
+    const uniqueQuestionId = `${selectedQuestionId}_${this.randomQuestionHistory.length}`
+    
+    // 선택된 문제를 기록에 추가 (고유 ID로)
+    this.randomQuestionHistory.push(uniqueQuestionId)
     
     // run.questionIds를 현재 선택된 문제들로 업데이트
     this.run.questionIds = [...this.randomQuestionHistory]
@@ -525,7 +547,10 @@ export class Runner {
     }
 
     // 랜덤 반복 모드에서 새 문제일 때 이전 답안 초기화
-    const userAnswer = this.shouldClearAnswer(currentQuestion) ? [] : (this.run.answers[currentQuestion.id] || [])
+    const questionId = this.run.config.order === 'randomRepeat' 
+      ? this.run.questionIds[this.currentIndex]  // 고유 ID 사용
+      : currentQuestion.id  // 원본 ID 사용
+    const userAnswer = this.shouldClearAnswer(currentQuestion) ? [] : (this.run.answers[questionId] || [])
     const isAnswered = userAnswer.length > 0
 
     // Practice 모드에서 피드백이 표시된 문제인 경우에만 피드백 표시 (답안이 없어도 표시)
@@ -692,8 +717,8 @@ export class Runner {
   shouldClearAnswer(currentQuestion) {
     if (this.run.config.order !== 'randomRepeat') return false
     
-    // 랜덤 반복 모드에서는 항상 새로운 문제로 취급하여 답안 초기화
-    return true
+    // 랜덤 반복 모드에서는 답안을 초기화하지 않음 (고유 ID로 관리하므로)
+    return false
   }
 
   /**

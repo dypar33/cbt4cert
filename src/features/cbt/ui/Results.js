@@ -18,9 +18,11 @@ export class Results {
    * 결과 화면 렌더링
    */
   render(result, questions, run, onRetry, onHome) {
-    const wrongQuestions = result.wrong.map(id => 
-      questions.find(q => q.id === id)
-    ).filter(Boolean)
+    const wrongQuestions = result.wrong.map(id => {
+      // 랜덤 반복 모드에서는 고유 ID에서 원본 ID를 추출
+      const originalId = run.config.order === 'randomRepeat' ? id.split('_')[0] : id
+      return questions.find(q => q.id === originalId)
+    }).filter(Boolean)
 
     const timeMinutes = Math.floor(result.timeSpent / 60000)
     const timeSeconds = Math.floor((result.timeSpent % 60000) / 1000)
@@ -74,8 +76,10 @@ export class Results {
                 틀린 문제 (${wrongQuestions.length}개)
               </h3>
               <div style="max-height: 400px; overflow-y: auto;">
-                ${wrongQuestions.map(q => {
-                  const userAnswer = run.answers[q.id] || []
+                ${wrongQuestions.map((q, index) => {
+                  // 랜덤 반복 모드에서는 고유 ID를 사용하여 사용자 답안 찾기
+                  const wrongQuestionId = result.wrong[index]
+                  const userAnswer = run.answers[wrongQuestionId] || []
                   return `
                     <div style="
                       padding: var(--space-4); 
