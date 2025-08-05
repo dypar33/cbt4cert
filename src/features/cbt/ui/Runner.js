@@ -516,8 +516,9 @@ export class Runner {
     // 랜덤 반복 모드에서는 답변한 문제 수 기준으로 진행률 계산
     let progress, progressText
     if (this.run.config.order === 'randomRepeat') {
+      const currentQuestionNumber = Math.min(this.totalQuestionsAnswered + 1, this.run.config.count)
       progress = (this.totalQuestionsAnswered / this.run.config.count) * 100
-      progressText = `${this.totalQuestionsAnswered + 1} / ${this.run.config.count}`
+      progressText = `${currentQuestionNumber} / ${this.run.config.count}`
     } else {
       progress = ((this.currentIndex + 1) / this.run.questionIds.length) * 100
       progressText = `${this.currentIndex + 1} / ${this.run.questionIds.length}`

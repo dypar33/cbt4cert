@@ -27,7 +27,7 @@ export default defineConfig({
     {
       name: 'copy-static-assets',
       writeBundle() {
-        // data 폴더 복사
+        // assets/images 폴더 복사
         const copyDir = (src, dest) => {
           if (!existsSync(src)) return
           if (!existsSync(dest)) {
@@ -46,9 +46,7 @@ export default defineConfig({
           }
         }
         
-        // assets/images 폴더 복사
         copyDir('assets/images', 'docs/assets/images')
-        
         console.log('Static assets copied to docs/')
       }
     }
