@@ -102,9 +102,13 @@ export class App {
     }
 
     try {
-      // 문제 은행 로드
+      // 문제 은행 로드 (새로운 챕터 구조 지원)
       console.log('문제 은행 로딩 중...', config.certification, config.subject)
-      const questions = await loadQuestionBank(config.certification, config.subject)
+      const questions = await loadQuestionBank(
+        config.certification, 
+        config.subject, 
+        config.selectedChapters
+      )
       
       if (questions.length === 0) {
         throw new Error('문제가 없습니다')

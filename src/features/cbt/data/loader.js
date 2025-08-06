@@ -22,28 +22,67 @@ export async function loadCatalog() {
 
 /**
  * 문제 은행 로드 - 특정 자격증/과목의 문제들을 가져옴
+ * @param {string} certification - 자격증명
+ * @param {string} subject - 과목명 (문자열) 또는 과목 객체
+ * @param {Array<string>} selectedChapters - 선택된 챕터 파일명 배열 (선택사항)
  */
-export async function loadQuestionBank(certification, subject) {
+export async function loadQuestionBank(certification, subject, selectedChapters = null) {
   try {
-    // 개발 환경과 배포 환경 모두 docs/data 폴더 사용
-    // GitHub Pages에서는 /cbt4cert/data/ 경로 사용, 로컬에서는 docs/data/ 경로 사용
     const isGitHubPages = window.location.hostname === 'dypar33.github.io'
     const basePath = isGitHubPages ? '/cbt4cert' : '/docs'
-    const path = `${basePath}/data/${encodeURIComponent(certification)}/${encodeURIComponent(subject)}/questions.json`
-    const response = await fetch(path)
-    if (!response.ok) {
-      throw new Error(`문제 은행 로드 실패: ${response.status}`)
-    }
-    const questions = await response.json()
     
-    if (!Array.isArray(questions)) {
-      throw new Error('문제 데이터가 배열 형태가 아닙니다.')
+    // 이전 버전 호환성: subject가 문자열인 경우 기존 방식 사용
+    if (typeof subject === 'string') {
+      const path = `${basePath}/data/${encodeURIComponent(certification)}/${encodeURIComponent(subject)}/questions.json`
+      const response = await fetch(path)
+      if (!response.ok) {
+        throw new Error(`문제 은행 로드 실패: ${response.status}`)
+      }
+      const questions = await response.json()
+      
+      if (!Array.isArray(questions)) {
+        throw new Error('문제 데이터가 배열 형태가 아닙니다.')
+      }
+      
+      return questions.map(normalizeQuestion)
     }
     
-    return questions.map(normalizeQuestion)
+    // 새로운 챕터 방식: subject가 객체이고 chapters가 있는 경우
+    if (subject && subject.chapters) {
+      const subjectName = subject.name
+      let chaptersToLoad = selectedChapters || subject.chapters.map(ch => ch.file)
+      
+      const allQuestions = []
+      
+      for (const chapterFile of chaptersToLoad) {
+        try {
+          const path = `${basePath}/data/${encodeURIComponent(certification)}/${encodeURIComponent(subjectName)}/${encodeURIComponent(chapterFile)}`
+          const response = await fetch(path)
+          if (!response.ok) {
+            console.warn(`챕터 파일 로드 실패: ${chapterFile} (${response.status})`)
+            continue
+          }
+          const chapterQuestions = await response.json()
+          
+          if (Array.isArray(chapterQuestions)) {
+            allQuestions.push(...chapterQuestions)
+          }
+        } catch (error) {
+          console.warn(`챕터 파일 로드 중 오류: ${chapterFile}`, error)
+        }
+      }
+      
+      if (allQuestions.length === 0) {
+        throw new Error('선택된 챕터에서 문제를 불러올 수 없습니다.')
+      }
+      
+      return allQuestions.map(normalizeQuestion)
+    }
+    
+    throw new Error('올바르지 않은 과목 데이터입니다.')
   } catch (error) {
     console.error('문제 은행 로드 중 오류:', error)
-    throw new Error(`${certification} - ${subject} 문제를 불러올 수 없습니다.`)
+    throw new Error(`${certification} - ${typeof subject === 'string' ? subject : subject.name} 문제를 불러올 수 없습니다.`)
   }
 }
 

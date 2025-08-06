@@ -56,6 +56,28 @@ export class Home {
             </select>
           </div>
 
+          <div id="chapter-selection" style="margin-bottom: var(--space-6); display: none;">
+            <label style="display: block; margin-bottom: var(--space-2); font-weight: 500;">
+              챕터 선택
+            </label>
+            <div style="
+              padding: var(--space-4);
+              background: var(--color-surface);
+              border-radius: var(--radius-lg);
+              border: 1px solid var(--color-border);
+            ">
+              <div style="margin-bottom: var(--space-3);">
+                <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+                  <input type="checkbox" id="select-all-chapters" style="margin: 0;">
+                  <span style="font-weight: 500;">전체 선택</span>
+                </label>
+              </div>
+              <div id="chapter-list" style="display: grid; gap: var(--space-2);">
+                <!-- 챕터 목록이 여기에 동적으로 추가됩니다 -->
+              </div>
+            </div>
+          </div>
+
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-bottom: var(--space-6);">
             <div>
               <label for="order" style="display: block; margin-bottom: var(--space-2); font-weight: 500;">
@@ -206,26 +228,38 @@ export class Home {
         subjectSelect.disabled = false
         subjectSelect.innerHTML = `
           <option value="">과목을 선택하세요</option>
-          ${selectedCert.subjects.map(subject => 
-            `<option value="${subject}">${subject}</option>`
-          ).join('')}
+          ${selectedCert.subjects.map(subject => {
+            const subjectName = typeof subject === 'string' ? subject : subject.name
+            return `<option value="${JSON.stringify(subject).replace(/"/g, '&quot;')}">${subjectName}</option>`
+          }).join('')}
         `
         
         // 이전 선택 복원
         const storage = loadStorage()
-        if (storage.preferences.lastSubject && selectedCert.subjects.includes(storage.preferences.lastSubject)) {
-          subjectSelect.value = storage.preferences.lastSubject
-          updateQuestionCount()
+        if (storage.preferences.lastSubject) {
+          // 이전 선택과 일치하는 과목 찾기
+          const matchingSubject = selectedCert.subjects.find(subject => {
+            const subjectName = typeof subject === 'string' ? subject : subject.name
+            return subjectName === storage.preferences.lastSubject
+          })
+          if (matchingSubject) {
+            subjectSelect.value = JSON.stringify(matchingSubject).replace(/"/g, '&quot;')
+            subjectSelect.dispatchEvent(new Event('change'))
+          }
         }
       } else {
         subjectSelect.disabled = true
         subjectSelect.innerHTML = '<option value="">먼저 자격증을 선택하세요</option>'
+        this.hideChapterSelection()
         updateQuestionCount()
       }
     })
     
-    // 과목 선택 시 문제 개수 업데이트
-    subjectSelect.addEventListener('change', updateQuestionCount)
+    // 과목 선택 시 챕터 선택 표시 및 문제 개수 업데이트
+    subjectSelect.addEventListener('change', () => {
+      this.handleSubjectChange()
+      updateQuestionCount()
+    })
     
     // 출제 순서 변경 시 문제 개수 업데이트
     orderSelect.addEventListener('change', updateQuestionCount)
@@ -248,21 +282,40 @@ export class Home {
    */
   async handleFormSubmit() {
     const certification = this.container.querySelector('#certification').value
-    const subject = this.container.querySelector('#subject').value
+    const subjectValue = this.container.querySelector('#subject').value
     const order = this.container.querySelector('#order').value
     const mode = this.container.querySelector('#mode').value
     const countInput = this.container.querySelector('#count')
 
-    if (!certification || !subject) {
+    if (!certification || !subjectValue) {
       alert('자격증과 과목을 모두 선택해주세요.')
       return
+    }
+
+    let subjectData
+    let selectedChapters = null
+    
+    try {
+      subjectData = JSON.parse(subjectValue.replace(/&quot;/g, '"'))
+      
+      // 챕터 구조인 경우 선택된 챕터 확인
+      if (subjectData && subjectData.chapters) {
+        selectedChapters = this.getSelectedChapters()
+        if (selectedChapters.length === 0) {
+          alert('최소 하나의 챕터를 선택해주세요.')
+          return
+        }
+      }
+    } catch (error) {
+      // JSON 파싱 실패 시 이전 버전 호환성 (문자열 과목명)
+      subjectData = subjectValue
     }
 
     // 실제 문제 파일에서 문제 수 확인
     let availableQuestions
     try {
       const { loadQuestionBank } = await import('../data/loader.js')
-      const questions = await loadQuestionBank(certification, subject)
+      const questions = await loadQuestionBank(certification, subjectData, selectedChapters)
       availableQuestions = questions.length
     } catch (error) {
       alert('선택한 과목의 문제를 불러올 수 없습니다.')
@@ -292,10 +345,11 @@ export class Home {
       count = availableQuestions
     }
 
-    // 설정 저장
+    // 설정 저장 (과목명만 저장)
+    const subjectName = typeof subjectData === 'string' ? subjectData : subjectData.name
     updatePreferences({
       lastCertification: certification,
-      lastSubject: subject,
+      lastSubject: subjectName,
       lastOrder: order,
       lastMode: mode,
       lastCount: count
@@ -304,12 +358,189 @@ export class Home {
     // 퀴즈 시작
     const config = {
       certification,
-      subject,
+      subject: subjectData,
+      selectedChapters,
       order,
       mode,
       count
     }
 
     this.onStartQuiz?.(config)
+  }
+
+  /**
+   * 과목 변경 처리
+   */
+  handleSubjectChange() {
+    const subjectSelect = this.container.querySelector('#subject')
+    const subjectValue = subjectSelect.value
+    
+    if (!subjectValue) {
+      this.hideChapterSelection()
+      return
+    }
+
+    try {
+      const subjectData = JSON.parse(subjectValue.replace(/&quot;/g, '"'))
+      
+      // 새로운 챕터 구조인지 확인
+      if (subjectData && subjectData.chapters && Array.isArray(subjectData.chapters)) {
+        this.showChapterSelection(subjectData.chapters)
+      } else {
+        // 이전 버전 호환성: 문자열 과목명인 경우 챕터 선택 숨김
+        this.hideChapterSelection()
+      }
+    } catch (error) {
+      // JSON 파싱 실패 시 이전 버전으로 간주
+      this.hideChapterSelection()
+    }
+  }
+
+  /**
+   * 챕터 선택 영역 표시
+   */
+  showChapterSelection(chapters) {
+    const chapterSelection = this.container.querySelector('#chapter-selection')
+    const chapterList = this.container.querySelector('#chapter-list')
+    const selectAllCheckbox = this.container.querySelector('#select-all-chapters')
+    
+    // 챕터 목록 생성
+    chapterList.innerHTML = chapters.map(chapter => `
+      <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+        <input type="checkbox" class="chapter-checkbox" value="${chapter.file}" style="margin: 0;" checked>
+        <span>${chapter.name} - ${chapter.title}</span>
+      </label>
+    `).join('')
+    
+    // 전체 선택 체크박스 초기화
+    selectAllCheckbox.checked = true
+    
+    // 전체 선택 이벤트 리스너
+    selectAllCheckbox.addEventListener('change', () => {
+      const checkboxes = chapterList.querySelectorAll('.chapter-checkbox')
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked
+      })
+      this.updateQuestionCountForChapters()
+    })
+    
+    // 개별 챕터 체크박스 이벤트 리스너
+    const chapterCheckboxes = chapterList.querySelectorAll('.chapter-checkbox')
+    chapterCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', () => {
+        // 전체 선택 체크박스 상태 업데이트
+        const allChecked = Array.from(chapterCheckboxes).every(cb => cb.checked)
+        const noneChecked = Array.from(chapterCheckboxes).every(cb => !cb.checked)
+        
+        selectAllCheckbox.checked = allChecked
+        selectAllCheckbox.indeterminate = !allChecked && !noneChecked
+        
+        this.updateQuestionCountForChapters()
+      })
+    })
+    
+    chapterSelection.style.display = 'block'
+    this.updateQuestionCountForChapters()
+  }
+
+  /**
+   * 챕터 선택 영역 숨김
+   */
+  hideChapterSelection() {
+    const chapterSelection = this.container.querySelector('#chapter-selection')
+    chapterSelection.style.display = 'none'
+  }
+
+  /**
+   * 선택된 챕터들의 문제 개수 업데이트
+   */
+  async updateQuestionCountForChapters() {
+    const certification = this.container.querySelector('#certification').value
+    const subjectSelect = this.container.querySelector('#subject')
+    const order = this.container.querySelector('#order').value
+    const questionCountInfo = this.container.querySelector('#question-count-info')
+    const countInputContainer = this.container.querySelector('#count-input-container')
+    const countInput = this.container.querySelector('#count')
+    
+    if (!certification || !subjectSelect.value) {
+      return
+    }
+
+    try {
+      const subjectData = JSON.parse(subjectSelect.value.replace(/&quot;/g, '"'))
+      
+      if (!subjectData.chapters) {
+        return
+      }
+
+      // 선택된 챕터들 가져오기
+      const selectedChapters = Array.from(this.container.querySelectorAll('.chapter-checkbox:checked'))
+        .map(checkbox => checkbox.value)
+      
+      if (selectedChapters.length === 0) {
+        questionCountInfo.innerHTML = `
+          <span style="color: var(--color-warning);">최소 하나의 챕터를 선택해주세요</span>
+        `
+        countInputContainer.style.display = 'none'
+        return
+      }
+
+      // 선택된 챕터들의 문제 로드
+      const { loadQuestionBank } = await import('../data/loader.js')
+      const questions = await loadQuestionBank(certification, subjectData, selectedChapters)
+      const availableQuestions = questions.length
+      
+      if (availableQuestions > 0) {
+        const selectedChapterNames = selectedChapters.map(file => {
+          const chapter = subjectData.chapters.find(ch => ch.file === file)
+          return chapter ? chapter.name : file
+        }).join(', ')
+        
+        if (order === 'randomRepeat') {
+          questionCountInfo.innerHTML = `
+            <strong style="color: var(--color-primary);">${availableQuestions}개</strong> 문제 중에서 랜덤 반복 출제
+            <div style="font-size: var(--font-size-sm); margin-top: var(--space-1); opacity: 0.8;">
+              선택된 챕터: ${selectedChapterNames}
+            </div>
+            <div style="font-size: var(--font-size-sm); margin-top: var(--space-1); opacity: 0.8;">
+              출제할 문제 수를 아래에 입력하세요 (같은 문제가 반복될 수 있습니다)
+            </div>
+          `
+          countInputContainer.style.display = 'block'
+          countInput.max = Math.max(100, availableQuestions)
+          countInput.placeholder = `1-${Math.max(100, availableQuestions)}개`
+        } else {
+          questionCountInfo.innerHTML = `
+            <strong style="color: var(--color-primary);">${availableQuestions}개</strong> 문제 ${order === 'sequential' ? '순차' : '랜덤'} 출제
+            <div style="font-size: var(--font-size-sm); margin-top: var(--space-1); opacity: 0.8;">
+              선택된 챕터: ${selectedChapterNames}
+            </div>
+            <div style="font-size: var(--font-size-sm); margin-top: var(--space-1); opacity: 0.8;">
+              모든 문제가 한 번씩 출제됩니다
+            </div>
+          `
+          countInputContainer.style.display = 'none'
+        }
+      } else {
+        questionCountInfo.innerHTML = `
+          <span style="color: var(--color-error);">선택된 챕터에서 문제를 불러올 수 없습니다</span>
+        `
+        countInputContainer.style.display = 'none'
+      }
+    } catch (error) {
+      console.error('챕터별 문제 수 확인 중 오류:', error)
+      questionCountInfo.innerHTML = `
+        <span style="color: var(--color-error);">문제를 불러올 수 없습니다</span>
+      `
+      countInputContainer.style.display = 'none'
+    }
+  }
+
+  /**
+   * 선택된 챕터들 가져오기
+   */
+  getSelectedChapters() {
+    const chapterCheckboxes = this.container.querySelectorAll('.chapter-checkbox:checked')
+    return Array.from(chapterCheckboxes).map(checkbox => checkbox.value)
   }
 }

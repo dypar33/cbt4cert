@@ -64,12 +64,17 @@ export class HashRouter {
    */
   navigateToQuiz(config) {
     const params = new URLSearchParams({
-      cert: config.certification,
-      subject: config.subject,
+      certification: config.certification,
+      subject: typeof config.subject === 'string' ? config.subject : JSON.stringify(config.subject),
       order: config.order,
       mode: config.mode,
       count: config.count.toString()
     })
+    
+    // 선택된 챕터가 있는 경우 추가
+    if (config.selectedChapters && config.selectedChapters.length > 0) {
+      params.set('chapters', JSON.stringify(config.selectedChapters))
+    }
     
     this.navigate(`/quiz?${params.toString()}`)
   }
@@ -92,9 +97,9 @@ export class HashRouter {
    * URL 파라미터에서 퀴즈 설정 파싱
    */
   parseQuizConfig(params) {
-    const { cert, subject, order, mode, count } = params
+    const { certification, subject, order, mode, count, chapters } = params
 
-    if (!cert || !subject || !order || !mode || !count) {
+    if (!certification || !subject || !order || !mode || !count) {
       return null
     }
 
@@ -111,11 +116,35 @@ export class HashRouter {
       return null
     }
 
+    // 과목 데이터 파싱 (문자열 또는 JSON 객체)
+    let parsedSubject
+    try {
+      parsedSubject = JSON.parse(subject)
+    } catch (error) {
+      // JSON 파싱 실패 시 문자열로 처리 (이전 버전 호환성)
+      parsedSubject = subject
+    }
+
+    // 선택된 챕터 파싱
+    let selectedChapters = null
+    if (chapters) {
+      try {
+        selectedChapters = JSON.parse(chapters)
+        if (!Array.isArray(selectedChapters)) {
+          selectedChapters = null
+        }
+      } catch (error) {
+        console.warn('챕터 파라미터 파싱 실패:', error)
+        selectedChapters = null
+      }
+    }
+
     return {
-      certification: cert,
-      subject: subject,
-      order: order,
-      mode: mode,
+      certification,
+      subject: parsedSubject,
+      selectedChapters,
+      order,
+      mode,
       count: parsedCount
     }
   }
