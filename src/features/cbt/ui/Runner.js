@@ -12,18 +12,6 @@ function escapeHtml(text) {
   return div.innerHTML
 }
 
-/**
- * 텍스트 포맷팅 함수 - 줄바꿈과 공백을 올바르게 처리
- */
-function formatText(text) {
-  if (!text) return ''
-  
-  // HTML 이스케이프 후 줄바꿈 처리
-  return escapeHtml(text)
-    .replace(/\n/g, '<br>')
-    .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
-    .replace(/  /g, '&nbsp;&nbsp;') // 연속된 공백 처리
-}
 
 export class Runner {
   constructor(container) {
@@ -36,6 +24,83 @@ export class Runner {
     this.boundHandleKeydown = this.handleKeydown.bind(this) // 바인딩된 함수 참조 저장
     this.randomQuestionHistory = [] // 랜덤 반복 모드에서 선택된 문제 기록
     this.totalQuestionsAnswered = 0 // 랜덤 반복 모드에서 답변한 총 문제 수
+  }
+
+  /**
+   * 텍스트 포맷팅 함수 - 줄바꿈, 공백, 이미지를 올바르게 처리
+   */
+  formatText(text, questionId = null) {
+    if (!text) return ''
+    
+    // HTML 이스케이프 후 줄바꿈 처리
+    let formatted = escapeHtml(text)
+      .replace(/\n/g, '<br>')
+      .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+      .replace(/  /g, '&nbsp;&nbsp;') // 연속된 공백 처리
+    
+    // 이미지 태그 처리: [img:index] 형식을 <img> 태그로 변환
+    formatted = formatted.replace(/\[img:(\d+)\]/g, (match, index) => {
+      // 현재 실행 중인 퀴즈의 자격증과 과목 정보를 동적으로 가져오기
+      const certName = this.run?.config?.certification
+      const subjectConfig = this.run?.config?.subject
+      
+      // subject가 객체인 경우 name 속성 사용, 문자열인 경우 그대로 사용
+      const subjectName = typeof subjectConfig === 'object' ? subjectConfig?.name : subjectConfig
+      
+      // 문제 ID가 제공되지 않으면 현재 문제 ID 사용
+      const currentQuestionId = questionId || this.getCurrentQuestion()?.id || 'unknown'
+      
+      // 이미지 파일명: {문제id}-{index}.png
+      const filename = `${currentQuestionId}-${index}.png`
+      
+      // 동적 이미지 경로 구성
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      
+      let imagePath
+      if (certName && subjectName) {
+        // 자격증과 과목 정보가 있는 경우 해당 경로 사용
+        if (isLocalhost) {
+          imagePath = `docs/data/${certName}/${subjectName}/images/${filename}`
+        } else {
+          imagePath = `data/${certName}/${subjectName}/images/${filename}`
+        }
+      } else {
+        // 기본 이미지 경로 사용 (하위 호환성)
+        if (isLocalhost) {
+          imagePath = `docs/data/images/${filename}`
+        } else {
+          imagePath = `data/images/${filename}`
+        }
+      }
+
+      return `
+        <img 
+          src="${imagePath}" 
+          alt="문제 이미지" 
+          style="
+            max-width: 100%;
+            height: auto;
+            margin: var(--space-4) 0;
+            border-radius: var(--radius-md);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          "
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+        />
+        <div style="
+          display: none;
+          padding: var(--space-3);
+          background: var(--color-error-bg);
+          color: var(--color-error);
+          border-radius: var(--radius-md);
+          font-size: var(--font-size-sm);
+          margin: var(--space-4) 0;
+        ">
+          ⚠️ 이미지를 불러올 수 없습니다: ${filename}
+        </div>
+      `
+    })
+    
+    return formatted
   }
 
   /**
@@ -133,7 +198,7 @@ export class Runner {
                   "
                 />
                 <span style="flex: 1; font-size: var(--font-size-base);">
-                  ${formatText(choice)}
+                  ${this.formatText(choice, this.getCurrentQuestion()?.id)}
                 </span>
               </label>
             `
@@ -630,7 +695,7 @@ export class Runner {
             margin-bottom: var(--space-6);
             line-height: 1.6;
           ">
-            ${formatText(currentQuestion.question)}
+            ${this.formatText(currentQuestion.question, currentQuestion.id)}
           </div>
 
           <!-- 답안 입력 영역 -->
@@ -655,7 +720,7 @@ export class Runner {
                 ${isCorrect ? '✅ 정답입니다!' : '❌ 틀렸습니다.'}
               </div>
               <div style="opacity: 0.9; font-size: var(--font-size-sm);">
-                정답: ${currentQuestion.answer.map(ans => formatText(ans)).join(', ')}
+                정답: ${currentQuestion.answer.map(ans => this.formatText(ans, currentQuestion.id)).join(', ')}
               </div>
               ${currentQuestion.explanation ? `
                 <div style="
@@ -665,7 +730,7 @@ export class Runner {
                   padding-top: var(--space-2);
                   border-top: 1px solid rgba(255,255,255,0.2);
                 ">
-                  ${formatText(currentQuestion.explanation)}
+                  ${this.formatText(currentQuestion.explanation, currentQuestion.id)}
                 </div>
               ` : ''}
             </div>
