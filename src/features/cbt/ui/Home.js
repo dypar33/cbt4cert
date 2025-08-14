@@ -100,6 +100,23 @@ export class Home {
             </div>
           </div>
 
+          <div style="margin-bottom: var(--space-6);">
+            <div style="
+              padding: var(--space-4);
+              background: var(--color-surface);
+              border-radius: var(--radius-lg);
+              border: 1px solid var(--color-border);
+            ">
+              <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer;">
+                <input type="checkbox" id="shuffle-choices" ${prefs.shuffleChoices ? 'checked' : ''} style="margin: 0;">
+                <span style="font-weight: 500;">보기 순서 랜덤</span>
+              </label>
+              <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-top: var(--space-1);">
+                객관식 문제의 보기 순서를 랜덤으로 섞어서 출제합니다
+              </div>
+            </div>
+          </div>
+
           <div style="margin-bottom: var(--space-8);">
             <div style="
               padding: var(--space-4);
@@ -345,6 +362,9 @@ export class Home {
       count = availableQuestions
     }
 
+    // 보기 순서 랜덤 설정 가져오기
+    const shuffleChoices = this.container.querySelector('#shuffle-choices').checked
+
     // 설정 저장 (과목명만 저장)
     const subjectName = typeof subjectData === 'string' ? subjectData : subjectData.name
     updatePreferences({
@@ -352,7 +372,8 @@ export class Home {
       lastSubject: subjectName,
       lastOrder: order,
       lastMode: mode,
-      lastCount: count
+      lastCount: count,
+      shuffleChoices: shuffleChoices
     })
 
     // 퀴즈 시작
@@ -362,7 +383,8 @@ export class Home {
       selectedChapters,
       order,
       mode,
-      count
+      count,
+      shuffleChoices
     }
 
     this.onStartQuiz?.(config)

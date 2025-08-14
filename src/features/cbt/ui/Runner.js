@@ -161,11 +161,27 @@ export class Runner {
       const inputType = isMultiple ? 'checkbox' : 'radio'
       const inputName = isMultiple ? '' : 'mcq-answer'
 
+      // 보기 순서 섞기 처리
+      let choices = [...question.choices] // 원본 배열 복사
+      
+      if (this.run?.config?.shuffleChoices) {
+        // 문제별로 일관된 랜덤 순서를 위해 문제 ID를 시드로 사용
+        const questionId = this.run.config.order === 'randomRepeat' 
+          ? this.run.questionIds[this.currentIndex]  // 고유 ID 사용
+          : question.id  // 원본 ID 사용
+        
+        choices = this.shuffleArray(choices, questionId)
+      }
+
       return `
         <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-          ${question.choices.map((choice, index) => {
+          ${choices.map((choice, index) => {
             const isChecked = userAnswer.includes(choice)
             const choiceId = `choice-${index}`
+            
+            // 원래 번호 제거 (1. 2. 3. 4. 등) 및 새로운 번호 추가
+            const cleanChoice = this.cleanChoiceText(choice)
+            const choiceNumber = index + 1
             
             return `
               <label 
@@ -198,7 +214,8 @@ export class Runner {
                   "
                 />
                 <span style="flex: 1; font-size: var(--font-size-base);">
-                  ${this.formatText(choice, this.getCurrentQuestion()?.id)}
+                  <span style="font-weight: 500; margin-right: var(--space-2);">${choiceNumber}.</span>
+                  ${this.formatText(cleanChoice, this.getCurrentQuestion()?.id)}
                 </span>
               </label>
             `
@@ -499,8 +516,11 @@ export class Runner {
    * 답안 정답 여부 확인
    */
   checkAnswer(question, userAnswer) {
-    const normalizeAnswer = (answer) => 
-      answer.toLowerCase().trim().replace(/\s+/g, ' ')
+    const normalizeAnswer = (answer) => {
+      // 번호 제거 후 정규화
+      const cleaned = this.cleanChoiceText(answer)
+      return cleaned.toLowerCase().trim().replace(/\s+/g, ' ')
+    }
     
     const correctAnswers = question.answer.map(normalizeAnswer)
     const userAnswers = userAnswer.map(normalizeAnswer)
@@ -720,7 +740,7 @@ export class Runner {
                 ${isCorrect ? '✅ 정답입니다!' : '❌ 틀렸습니다.'}
               </div>
               <div style="opacity: 0.9; font-size: var(--font-size-sm);">
-                정답: ${currentQuestion.answer.map(ans => this.formatText(ans, currentQuestion.id)).join(', ')}
+                정답: ${this.getFormattedCorrectAnswers(currentQuestion)}
               </div>
               ${currentQuestion.explanation ? `
                 <div style="
@@ -804,6 +824,92 @@ export class Runner {
       return this.totalQuestionsAnswered >= this.run.config.count
     }
     return this.currentIndex === this.run.questionIds.length - 1
+  }
+
+  /**
+   * 배열을 시드 기반으로 섞기 (문제별로 일관된 랜덤 순서 보장)
+   */
+  shuffleArray(array, seed) {
+    // 시드를 문자열로 변환
+    const seedStr = String(seed || 'default')
+    
+    // 시드를 숫자로 변환
+    let seedNum = 0
+    for (let i = 0; i < seedStr.length; i++) {
+      seedNum += seedStr.charCodeAt(i)
+    }
+    
+    // 복사본 생성
+    const shuffled = [...array]
+    
+    // Fisher-Yates 셔플 알고리즘 (시드 기반)
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      // 시드 기반 의사 랜덤 숫자 생성
+      seedNum = (seedNum * 9301 + 49297) % 233280
+      const j = Math.floor((seedNum / 233280) * (i + 1))
+      
+      // 요소 교환
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    
+    return shuffled
+  }
+
+  /**
+   * 보기 텍스트에서 원래 번호 제거 (1. 2. 3. 4. 등)
+   */
+  cleanChoiceText(choice) {
+    if (!choice) return ''
+    
+    // 문자열 시작 부분의 숫자와 점, 공백을 제거
+    // 예: "1. Alt + Enter : 선택된 항목의 속성 창을 호출함" -> "Alt + Enter : 선택된 항목의 속성 창을 호출함"
+    return choice.replace(/^\s*\d+\.\s*/, '').trim()
+  }
+
+  /**
+   * 화면에 표시된 순서에 맞는 정답 번호로 포맷팅
+   */
+  getFormattedCorrectAnswers(question) {
+    if (question.type === 'short' || !question.choices) {
+      // 단답형인 경우 그대로 반환
+      return question.answer.map(ans => this.formatText(ans, question.id)).join(', ')
+    }
+
+    // 객관식인 경우 화면에 표시된 순서에 맞는 번호 찾기
+    let choices = [...question.choices] // 원본 배열 복사
+    
+    if (this.run?.config?.shuffleChoices) {
+      // 문제별로 일관된 랜덤 순서를 위해 문제 ID를 시드로 사용
+      const questionId = this.run.config.order === 'randomRepeat' 
+        ? this.run.questionIds[this.currentIndex]  // 고유 ID 사용
+        : question.id  // 원본 ID 사용
+      
+      choices = this.shuffleArray(choices, questionId)
+    }
+
+    // 정답들을 화면 표시 순서의 번호로 변환
+    const formattedAnswers = question.answer.map(correctAnswer => {
+      // 화면에 표시된 choices에서 정답의 인덱스 찾기
+      const displayIndex = choices.findIndex(choice => {
+        // 번호 제거 후 비교
+        const cleanChoice = this.cleanChoiceText(choice)
+        const cleanCorrect = this.cleanChoiceText(correctAnswer)
+        return cleanChoice.toLowerCase().trim() === cleanCorrect.toLowerCase().trim()
+      })
+      
+      if (displayIndex !== -1) {
+        // 화면 표시 번호 (1부터 시작)
+        const displayNumber = displayIndex + 1
+        const cleanAnswer = this.cleanChoiceText(correctAnswer)
+        return `${displayNumber}. ${this.formatText(cleanAnswer, question.id)}`
+      } else {
+        // 찾지 못한 경우 원본 그대로 (번호 제거)
+        const cleanAnswer = this.cleanChoiceText(correctAnswer)
+        return this.formatText(cleanAnswer, question.id)
+      }
+    })
+
+    return formattedAnswers.join(', ')
   }
 
   /**

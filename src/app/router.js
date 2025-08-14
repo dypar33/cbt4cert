@@ -76,6 +76,11 @@ export class HashRouter {
       params.set('chapters', JSON.stringify(config.selectedChapters))
     }
     
+    // 보기 순서 랜덤 설정 추가
+    if (config.shuffleChoices) {
+      params.set('shuffleChoices', 'true')
+    }
+    
     this.navigate(`/quiz?${params.toString()}`)
   }
 
@@ -97,7 +102,7 @@ export class HashRouter {
    * URL 파라미터에서 퀴즈 설정 파싱
    */
   parseQuizConfig(params) {
-    const { certification, subject, order, mode, count, chapters } = params
+    const { certification, subject, order, mode, count, chapters, shuffleChoices } = params
 
     if (!certification || !subject || !order || !mode || !count) {
       return null
@@ -139,13 +144,17 @@ export class HashRouter {
       }
     }
 
+    // 보기 순서 랜덤 설정 파싱
+    const parsedShuffleChoices = shuffleChoices === 'true'
+
     return {
       certification,
       subject: parsedSubject,
       selectedChapters,
       order,
       mode,
-      count: parsedCount
+      count: parsedCount,
+      shuffleChoices: parsedShuffleChoices
     }
   }
 
