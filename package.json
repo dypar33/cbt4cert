@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:safe": "bash build.sh",
+    "build": "bash build.sh",
+    "build:safe": "vite build",
     "build:deploy": "npm run build && npm run copy-assets",
     "copy-assets": "cp dist/index.html . && cp -r dist/assets . && echo 'Assets copied for GitHub Pages deployment'",
     "preview": "vite preview"

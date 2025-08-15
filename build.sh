@@ -10,7 +10,7 @@ fi
 
 # Vite 빌드 실행
 echo "🔨 Vite 빌드 실행 중..."
-npm run build
+npm run build:safe
 
 # 빌드가 성공했는지 확인
 if [ $? -eq 0 ]; then

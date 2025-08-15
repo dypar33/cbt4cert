@@ -115,6 +115,9 @@ export class Runner {
     this.randomQuestionHistory = [] // 랜덤 문제 기록 초기화
     this.totalQuestionsAnswered = 0 // 답변한 문제 수 초기화
 
+    // 보기 순서 랜덤화를 위한 퀴즈 세션 시드 생성 (매번 다른 순서)
+    this.quizSessionSeed = Date.now()
+
     // 랜덤 반복 모드인 경우 첫 번째 문제를 랜덤으로 선택
     if (this.run.config.order === 'randomRepeat') {
       this.selectRandomQuestion()
@@ -165,12 +168,13 @@ export class Runner {
       let choices = [...question.choices] // 원본 배열 복사
       
       if (this.run?.config?.shuffleChoices) {
-        // 문제별로 일관된 랜덤 순서를 위해 문제 ID를 시드로 사용
+        // 문제별로 일관된 랜덤 순서를 위해 문제 ID + 퀴즈 세션 시드를 조합하여 사용
         const questionId = this.run.config.order === 'randomRepeat' 
           ? this.run.questionIds[this.currentIndex]  // 고유 ID 사용
           : question.id  // 원본 ID 사용
         
-        choices = this.shuffleArray(choices, questionId)
+        const combinedSeed = `${questionId}_${this.quizSessionSeed}`
+        choices = this.shuffleArray(choices, combinedSeed)
       }
 
       return `
@@ -879,12 +883,13 @@ export class Runner {
     let choices = [...question.choices] // 원본 배열 복사
     
     if (this.run?.config?.shuffleChoices) {
-      // 문제별로 일관된 랜덤 순서를 위해 문제 ID를 시드로 사용
+      // 문제별로 일관된 랜덤 순서를 위해 문제 ID + 퀴즈 세션 시드를 조합하여 사용
       const questionId = this.run.config.order === 'randomRepeat' 
         ? this.run.questionIds[this.currentIndex]  // 고유 ID 사용
         : question.id  // 원본 ID 사용
       
-      choices = this.shuffleArray(choices, questionId)
+      const combinedSeed = `${questionId}_${this.quizSessionSeed}`
+      choices = this.shuffleArray(choices, combinedSeed)
     }
 
     // 정답들을 화면 표시 순서의 번호로 변환
