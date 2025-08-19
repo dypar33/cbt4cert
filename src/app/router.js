@@ -109,7 +109,7 @@ export class HashRouter {
     }
 
     const parsedCount = parseInt(count)
-    if (isNaN(parsedCount) || parsedCount < 1 || parsedCount > 100) {
+    if (isNaN(parsedCount) || parsedCount < 1) {
       return null
     }
 

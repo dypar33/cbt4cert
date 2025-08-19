@@ -136,7 +136,6 @@ export class Home {
                   id="count" 
                   class="input" 
                   min="1" 
-                  max="100" 
                   value="${prefs.lastCount || 20}" 
                   placeholder="출제할 문제 수를 입력하세요"
                   style="width: 100%;"
@@ -208,7 +207,8 @@ export class Home {
                 </div>
               `
               countInputContainer.style.display = 'block'
-              countInput.max = Math.max(100, availableQuestions)
+              // max 속성 제거 - JavaScript에서 유효성 검사 처리
+              countInput.removeAttribute('max')
               countInput.placeholder = `1-${Math.max(100, availableQuestions)}개`
             } else {
               questionCountInfo.innerHTML = `
@@ -529,7 +529,8 @@ export class Home {
             </div>
           `
           countInputContainer.style.display = 'block'
-          countInput.max = Math.max(100, availableQuestions)
+          // max 속성 제거 - JavaScript에서 유효성 검사 처리
+          countInput.removeAttribute('max')
           countInput.placeholder = `1-${Math.max(100, availableQuestions)}개`
         } else {
           questionCountInfo.innerHTML = `
