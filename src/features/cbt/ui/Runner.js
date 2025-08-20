@@ -32,11 +32,25 @@ export class Runner {
   formatText(text, questionId = null) {
     if (!text) return ''
     
+    // <sub>와 <sup> 태그를 임시 플레이스홀더로 변환
+    let formatted = text
+      .replace(/<sub>/g, '___SUB_START___')
+      .replace(/<\/sub>/g, '___SUB_END___')
+      .replace(/<sup>/g, '___SUP_START___')
+      .replace(/<\/sup>/g, '___SUP_END___')
+    
     // HTML 이스케이프 후 줄바꿈 처리
-    let formatted = escapeHtml(text)
+    formatted = escapeHtml(formatted)
       .replace(/\n/g, '<br>')
       .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
       .replace(/  /g, '&nbsp;&nbsp;') // 연속된 공백 처리
+    
+    // 플레이스홀더를 다시 실제 HTML 태그로 복원
+    formatted = formatted
+      .replace(/___SUB_START___/g, '<sub>')
+      .replace(/___SUB_END___/g, '</sub>')
+      .replace(/___SUP_START___/g, '<sup>')
+      .replace(/___SUP_END___/g, '</sup>')
     
     // 이미지 태그 처리: [img:index] 형식을 <img> 태그로 변환
     formatted = formatted.replace(/\[img:(\d+)\]/g, (match, index) => {
