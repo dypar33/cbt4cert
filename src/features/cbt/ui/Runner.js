@@ -201,6 +201,27 @@ export class Runner {
             const cleanChoice = this.cleanChoiceText(choice)
             const choiceNumber = index + 1
             
+            // 보기 순서가 섞였을 때 원래 번호 찾기 (연습 모드 피드백 시에만)
+            let originalNumberText = ''
+            const showFeedback = this.run.config.mode === 'practice' && this.feedbackShown.has(this.currentIndex)
+            if (this.run?.config?.shuffleChoices && showFeedback) {
+              // 원본 choices에서 현재 choice의 원래 인덱스 찾기
+              const originalIndex = question.choices.findIndex(originalChoice => {
+                const cleanOriginal = this.cleanChoiceText(originalChoice)
+                return cleanOriginal.toLowerCase().trim() === cleanChoice.toLowerCase().trim()
+              })
+              
+              if (originalIndex !== -1) {
+                const originalNumber = originalIndex + 1
+                originalNumberText = `<span style="
+                  color: #008000; 
+                  font-size: 0.80em; 
+                  margin-left: auto; 
+                  font-weight: normal;
+                "> (${originalNumber})</span>`
+              }
+            }
+            
             return `
               <label 
                 for="${choiceId}"
@@ -231,9 +252,14 @@ export class Runner {
                     accent-color: var(--color-primary);
                   "
                 />
-                <span style="flex: 1; font-size: var(--font-size-base);">
-                  <span style="font-weight: 500; margin-right: var(--space-2);">${choiceNumber}.</span>
-                  ${this.formatText(cleanChoice, this.getCurrentQuestion()?.id)}
+                <span style="flex: 1; font-size: var(--font-size-base); display: flex; align-items: center;">
+                  <span style="font-weight: 500; margin-right: var(--space-2);">
+                    ${choiceNumber}.
+                  </span>
+                  <span style="flex: 1;">
+                    ${this.formatText(cleanChoice, this.getCurrentQuestion()?.id)}
+                  </span>
+                  ${originalNumberText}
                 </span>
               </label>
             `
@@ -920,6 +946,7 @@ export class Runner {
         // 화면 표시 번호 (1부터 시작)
         const displayNumber = displayIndex + 1
         const cleanAnswer = this.cleanChoiceText(correctAnswer)
+        
         return `${displayNumber}. ${this.formatText(cleanAnswer, question.id)}`
       } else {
         // 찾지 못한 경우 원본 그대로 (번호 제거)

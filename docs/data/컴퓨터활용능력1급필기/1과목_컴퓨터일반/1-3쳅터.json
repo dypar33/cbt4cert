@@ -41,7 +41,7 @@
     "answer": [
       "2. Alt + F4 : 활성 창을 닫거나 활성 앱을 종료"
     ],
-    "explanation": "- Alt + PrintScreen : 현재 작업 중인 활성 창을 클립보드에 복사함\n- PrintScreen : 화면 전체를 클립보드로 복사함\nF2 : 폴더 및 파일의 이름을 변경함\n- F3 : 파일 탐색기의 '검색 상자'를 선택함"
+    "explanation": "- Alt + PrintScreen : 현재 작업 중인 활성 창을 클립보드에 복사함\n- PrintScreen : 화면 전체를 클립보드로 복사함\n- F2 : 폴더 및 파일의 이름을 변경함\n- F3 : 파일 탐색기의 '검색 상자'를 선택함"
   },
   {
     "id": "cn-004",
