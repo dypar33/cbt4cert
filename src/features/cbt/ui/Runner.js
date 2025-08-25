@@ -38,6 +38,8 @@ export class Runner {
       .replace(/<\/sub>/g, '___SUB_END___')
       .replace(/<sup>/g, '___SUP_START___')
       .replace(/<\/sup>/g, '___SUP_END___')
+      .replace(/<b>/g, '___B_START___')
+      .replace(/<\/b>/g, '___B_END___')
     
     // HTML 이스케이프 후 줄바꿈 처리
     formatted = escapeHtml(formatted)
@@ -51,7 +53,8 @@ export class Runner {
       .replace(/___SUB_END___/g, '</sub>')
       .replace(/___SUP_START___/g, '<sup>')
       .replace(/___SUP_END___/g, '</sup>')
-    
+      .replace(/___B_START___/g, '<b>')
+      .replace(/___B_END___/g, '</b>')
     // 이미지 태그 처리: [img:index] 형식을 <img> 태그로 변환
     formatted = formatted.replace(/\[img:(\d+)\]/g, (match, index) => {
       // 현재 실행 중인 퀴즈의 자격증과 과목 정보를 동적으로 가져오기
